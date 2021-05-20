@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Weighted averaging- and model-based methods for assessing trait-environment relationships"
 author: "Romain"
 date: "5/14/2021"
 output: html_document

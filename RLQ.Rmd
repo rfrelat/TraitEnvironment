@@ -1,0 +1,232 @@
+---
+title: "Introduction to RLQ analysis"
+author: "Frelat, R."
+date: "7th June 2021"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document provides an **introduction to RLQ analysis**, as part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/).
+
+Please consult the [tutorial by Dray S. et al. 2016](https://ndownloader.figshare.com/files/5628774) for more details about the RLQ analysis [DOI 10.6084/m9.figshare.c.3306393.v1](https://doi.org/10.6084/m9.figshare.c.3306393.v1)
+
+# 1. Preliminaries
+
+## 1.1. Load packages and dataset
+
+The RLQ analyses require the R packages [ade4 (v ≥ 1.7.16)](https://pbil.univ-lyon1.fr/ade4/home.php?lang=eng).
+
+```{r, message=FALSE}
+library(ade4)
+```
+
+To plot maps with country border, you also need the packages `ggplot2 (v ≥ 3.3)`.
+
+```{r, message=FALSE}
+library(ggplot2)
+```
+
+If you get an error message, check that the R packages are installed correctly. If not, use the command: `install.packages(c("ade4", "ggplot2"))`.
+
+The example dataset is available as the Rdata file `NEAtl_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata).  
+
+## 1.2 Load the example dataset
+
+Make sure the file `NEAtl_FishTraitEnv.Rdata` is in your working directory, then load it in R.
+
+```{r}
+load("NEAtl_FishTraitEnv.Rdata")
+```
+
+The Rdata file contains four objects: 
+
+- `abu` containing the abundance of taxa in grid cells
+- `env` containing the environmental condition per grid cell
+- `trait` containing the trait information per taxa 
+- `coo`: the coordinates of each grid cell
+
+Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  
+```{r}
+all(row.names(abu)==row.names(env))
+all(colnames(abu)==row.names(trait))
+```
+
+If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/CleanDataTER.html).  
+
+Using the fish community of the Northeast Atlantic as an example, we will **explore the trait-environment relationship using the RLQ analysis**.
+
+
+## 1.3 Quick summary of the variables
+
+```{r}
+dim(trait)
+names(trait)
+```
+
+The `trait` table contains `r ncol(trait)`  traits (i.e variable, in column) characterizing `r nrow(trait)` taxa (in rows). The `r ncol(trait)` traits broadly represent the life history and ecology of fish in terms of their feeding, growth, survival and reproduction. These are:  
+
+- Trophic level
+- K: the growth rate, calculated as Von Bertalanffy growth coefficient in year$^{-1}$
+- Lmax: maximum body length in cm
+- Lifespan
+- Offspring.size_log: egg diameter, length of egg case or length of pup in mm
+- Fecundity_log: number of offspring produced by a female per year
+- Age.maturity: in years
+
+Trait values for fecundity and offspring size were log-transformed to reduce the influence of outliers. 
+
+
+```{r}
+dim(env)
+names(env)
+```
+
+The `env` table contains `r ncol(env)`  environmental variables (in column) characterizing `r nrow(env)` grid cells (in rows). The environmental variables measure hydrography, habitat, food availability and anthropogenic pressures, which are known to affect the distribution of fish species. These are:  
+
+- Depth: depth in meter, directly measured during the survey.
+- SBT: monthly sea bottom temperature in °C from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- SBS: monthly sea bottom salinity from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- Chl: Chlorophyll a concentration (in $mg.m^{-3}$) as a proxy for primary production and food availability from the GlobColour database
+- SBT_sea: seasonality of sea bottom temperature, calculated as the difference between the warmest and the coldest month of the year.
+- Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
+- Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
+
+
+# 2. Single unconstrained multivariate analysis
+
+The RLQ analysis is performed by four successive steps:  
+
+1. a correspondence analysis (COA) on abundance matrix
+2. a multivariate analysis on trait matrix using column weights from step 1
+3. a multivariate analysis on environmental matrix using row weights from step 1
+4. the RLQ analysis comparing the co-variance of the three previous steps with co-intertia analysis
+
+
+## 2.1 COA on abundance matrix L (sites x species)
+
+Correspondence analysis (COA) is a multivariate method suited to frequency data, such as count, presence-absence, or abundance data. It looks for 'correspondence', i.e. highlight which sites do the species prefer, in other words, which sites *correspond* to my species.
+Compare to PCA which maximize the *variance* explained, COA maximize the *inertia* explained, i.e. the 'correspondence' between the rows and columns of the table.
+For more explanation about COA, I recommend the short explanation in [GustaMe](https://sites.google.com/site/mb3gustame/indirect-gradient-analysis/ca) or the book Numerical Ecology by Legendre brothers.
+
+```{r}
+coa.abu <- dudi.coa(abu, scannf = FALSE, nf=2)
+```
+
+The objective is not to look in details at each step, so we don't interpret the results of COA here.
+
+## 2.2 PCA on traits matrix Q (species x traits)
+
+The second step it to analyze the trait matrix with a multivariate analysis. The choice of multivariate method (in the second and third step) is strongly linked with the type of data.
+It can be:  
+
+- Principal Component Analysis (PCA) if all variables are continuous. PCA is calculated with `dudi.pca()`.
+- Multiple Correspondence Analysis (MCA) if all variables are categorical. MCA is calculated with `dudi.acm()`.
+- Hill and smith analysis if there is a mix of continuous and categorical variables. Hill and smith analysis is calculated with `dudi.hillsmith()`.
+
+In all cases, it is necessary to specify the row weights (corresponding to the row or columns weights of the previous COA) with the parameter `row.w`.  
+
+In our case all traits are continuous, so we use a PCA with the row weights corresponding to the column weight of the previous COA (`row.w = coa.abu$cw`).
+
+```{r}
+pca.trait <- dudi.pca(trait, scannf = FALSE, 
+                      row.w = coa.abu$cw)
+```
+
+## 2.3 PCA on environment matrix R (sites x environment)
+
+Similarly here, with our seven continuous environmental variable, we chose to use a PCA with the row weights corresponding to the row weight of the previous COA (`row.w = coa.abu$lw`).
+
+```{r}
+pca.env <- dudi.pca(env, scannf = FALSE, 
+                     row.w = coa.abu$lw)
+```
+
+
+# 3. Run RLQ analysis and interpret the results
+
+## 3.1 Compute RLQ analysis
+
+To compute a RLQ analysis, we use the `rlq()` function with the results of the three previous steps, with R the environment, L the abundance, and Q the traits.
+RLQ is based on co-inertia analysis, which is a unconstrained symmetrical analysis that look for a compromise between the axes of three unconstrained analyses. RLQ combines the three separate analyses and aims at identifying the main relationships between environmental gradients and trait syndromes mediated by species abundances. For more mathematical definition, see Dray *et al.* 2003 and Dray *et al.* 2014
+
+
+```{r}
+rlqF <- rlq(pca.env, coa.abu, pca.trait, 
+            scannf = FALSE)
+
+summary(rlqF)
+```
+
+
+The projected inertia is the amount of co-inertia explained by the 
+the ordination provided by RLQ analysis assigns scores to species, samples, traits, and environmental variables along orthogonal axes and yields graphical summary of the main structures.
+
+The first axis of co-inertia (RLQ1) explain `r round(rlqF$eig[1]/sum(rlqF$eig)*100)`% of covariance. Hence, we will only interpret the scores of the first axis (but similar visualization could be carried out for subsequent axis).
+
+## 3.2 Trait scores
+
+```{r}
+#Plot traits score
+t1 <- order(rlqF$c1[,1])
+dotchart(rlqF$c1[t1,1], pch=16, 
+         labels = names(trait)[t1])
+abline(v=0, lty=2)
+```
+
+RLQ1 show the fast-slow continuum in species traits. With positive score (right side) for traits associated to slow life history (high age at maturity, large offspring, large size and high life expectancy) and negative score for traits associated to fast life history (fast growth).
+
+## 3.3 Species scores
+Due to the high number of species (```nrow(trait)```), it is hard to visualize the score of each individual species. But we can see the species with highest and lowest score on RLQ1.
+```{r}
+# top 10 species with positive score
+rlqF$mQ[order(rlqF$mQ[,1], decreasing = TRUE)[1:10],]
+
+# top 10 species with negative score
+rlqF$mQ[order(rlqF$mQ[,1])[1:10],]
+```
+
+Among the slowest species (here with positive score) are many sharks, skates and rays (e.g. the Greenland shark *Somniosus microcephalus*, the common skate *Dipturus batis*) but also some large bony fish such as the Atlantic halibut *Hippoglossus hippoglossus*.  
+Among the fastest species (here with negative score) are small fish such as three-spined stickleback *Gasterosteus aculeatus*, sprat *Sprattus sprattus* and gobbies *Gobiidae*.  
+
+
+## 3.4 Environmental scores
+```{r}
+#Plot environment score
+e1 <- order(rlqF$l1[,1])
+dotchart(rlqF$l1[e1,1], pch=16,
+         labels = names(env)[e1])
+abline(v=0, lty=2)
+```
+
+RLQ1 show a gradient between shallow-warm  and deep-cold waters. With positive scores are environment with high depth, but low and constant temperature as well as low primary production. Sites with negative scores have high average temperature and high seasonal fluctuation of temperature, as well as high primary production and low depth. 
+
+## 3.5 Sites scores
+
+```{r}
+# Choice of diverging color scale
+colpal <- terrain.colors(7)[-7]
+# or from RColorBrewer package
+# colpal <- rev(RColorBrewer::brewer.pal(6,"RdYlBu")) 
+
+mapggplot(coo[,1], coo[,2], rlqF$lR[,1], 
+          colpal, main="RLQ1")
+```
+
+
+This map summarize the association of trait and environment identified by RLQ analysis. Cells with green color (representing negative scores) are shallower and have higher and more fluctuating water temperature. They host species that are faster, especially with a fast growth coefficient, low age at maturity, small offspring and overall smaller and shorter lived species.
+On the contrary, cells with pinkish color are deeper and have constantly cold water temperature, which host a fish community with, in average, slower growth, slower maturity, larger offspring and larger and longer lived species.
+
+
+# References
+
+Buttigieg PL, Ramette A (2014) A Guide to Statistical Analysis in Microbial Ecology: a community-focused, living review of multivariate data analyses. FEMS Microbiol Ecol. 90: 543–550.
+
+Dray, S., Choler, P., Dolédec, S., Peres-Neto, P. R., Thuiller, W., Pavoine, S., & ter Braak, C. J. (2014). Combining the fourth‐corner and the RLQ methods for assessing trait responses to environmental variation. Ecology, 95(1), 14-21. [DOI 10.1890/13-0196.1](https://doi.org/10.1890/13-0196.1) 
+
+Legendre P, Legendre L. Numerical Ecology. 2nd ed. Amsterdam: Elsevier, 1998. ISBN 978-0444892508.

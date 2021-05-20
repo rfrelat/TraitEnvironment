@@ -3,8 +3,7 @@ title: "Estimating CWM traits and diversity indices"
 author: "Martin Lindegren, DTU Aqua (and modifed code from Esther Beukhof)"
 date: "12 May 2021"
 output:
-  html_document: 
-    keep_md: yes
+  html_document: default
   word_document: default
   pdf_document: default
 ---
@@ -12,8 +11,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-This document provides an example data and R code for estimating Community Weighted Mean (CWM) traits and diversity indices, as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest). 
+This document provides an example data and R code for estimating **Community Weighted Mean** (CWM) traits and diversity indices, as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest). It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html).
 
 # 1. Preliminaries
 
@@ -35,17 +33,18 @@ library(MuMIn)
 
 If you get an error message, check that the R packages are installed correctly. If not, use the command: `install.packages(c("FD", "mgcv", "ggplot2", "RColorBrewer", "randomForest", "MuMIn"))`.
 
-The example dataset is available as the Rdata file `NorthSea_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NorthSea_FishTraitEnv.Rdata).  
+The example dataset is available as the Rdata file `NEAtl_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata).  
 
 ## 1.2 Load and inspect data
 
-Make sure the file `NorthSea_FishTraitEnv.Rdata` is in your working directory, then load it in R.
+Make sure the file `NEAtl_FishTraitEnv.Rdata` is in your working directory, then load it in R.
 
 ```{r}
-load("NorthSea_FishTraitEnv.Rdata")
+load("NEAtl_FishTraitEnv.Rdata")
 ```
 
 The Rdata file contains four objects: 
+
 - `abu` Species abundance by grid cell (the community matrix)
 - `env` Environmental conditions by grid cell
 - `trait` Traits by species
@@ -65,16 +64,14 @@ names(trait)
 head(coo)
 ```
 
-Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  
-If you want to learn more about this dataset and how to create it, see the short tutorial on setting trait-environement dataset in XXX.
+Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/CleanDataTER.html).  
 
 ```{r}
 all(row.names(abu)==row.names(env))
 all(colnames(abu)==row.names(trait))
 ```
 
-Using this fish community of the North Sea as an example, you will learn how to estimate CWM traits and diversity indices, 
-as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest)
+Using this fish community of the Northeast Atlantic as an example, you will learn how to estimate CWM traits and diversity indices, as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest)
 
 
 # 2. Calculate Community-weighted mean (CWM) traits and various diversity indices 
@@ -241,15 +238,15 @@ par(mfrow=c(1,1),mar=c(5,4,2,2))
 Here, we perform automated model selection testing all combinations of predictors using the `dredge()` function (and rank according to AICc)
 Please see the documentation `?dredge` from the `MuMIn package` to inspect the function and all its options.
 
-**Be aware, the computation of `FD` can take several minutes.**
-```{r}
+**Be aware, the computation can take several minutes.**
+```{r eval=FALSE}
 results <- dredge(fitTL, m.lim=c(1,4), rank="AICc") # Here test max 4 variables per model to reduce run time
 subset(results, delta <5)  # Depth, SBT and fishing are key variables
 # Calculate and view relative variable importance (RVI) scores
 importance(results) 
 ```
 
-```{r}
+```{r eval=FALSE}
 # Fit and inspect the "best" model
 fitTLb <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                +s(SBT,k=3),
@@ -258,19 +255,19 @@ fitTLb <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                data = FDenv, control=lmeControl(opt="optim"))
 ```
 
-```{r}
+```{r eval=FALSE}
 # Inspect summary statistics
 summary(fitTLb$lme)
 summary(fitTLb$gam)
 ```
 
-```{r}
+```{r eval=FALSE}
 # Check diagnostics
 par(mfrow=c(2,2))
 gam.check(fitTLb$gam)
 ```
 
-```{r}
+```{r eval=FALSE}
 # Plot model smooth terms
 par(mfrow=c(2,1),mar=c(4,4,0.2,0.2))
 plot(fitTLb$gam,shade=T,shade.col="grey",res=T,rug=F,pch=20)
