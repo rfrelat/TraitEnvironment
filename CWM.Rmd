@@ -1,6 +1,6 @@
 ---
 title: "Estimating CWM traits and diversity indices"
-author: "Martin Lindegren, DTU Aqua (and modifed code from Esther Beukhof)"
+author: "Martin Lindegren, DTU Aqua (and Esther Beukhof)"
 date: "12 May 2021"
 output:
   html_document: default
@@ -52,17 +52,36 @@ The Rdata file contains four objects:
 
 ```{r}
 # Inspect data tables 
-head(abu) 
-head(env) 
+dim(abu) 
+
 dim(env)
 names(env)
 
-head(trait)
 dim(trait)
 names(trait)
-
-head(coo)
 ```
+
+The `trait` table contains `r ncol(trait)`  traits (i.e variable, in column) characterizing `r nrow(trait)` taxa (in rows). The `r ncol(trait)` traits broadly represent the life history and ecology of fish in terms of their feeding, growth, survival and reproduction. These are:  
+
+- Trophic level
+- K: the growth rate, calculated as Von Bertalanffy growth coefficient in year$^{-1}$
+- Lmax: maximum body length in cm
+- Lifespan
+- Offspring.size_log: egg diameter, length of egg case or length of pup in mm
+- Fecundity_log: number of offspring produced by a female per year
+- Age.maturity: in years
+
+Trait values for fecundity and offspring size were log-transformed to reduce the influence of outliers. 
+
+The `env` table contains `r ncol(env)`  environmental variables (in column) characterizing `r nrow(env)` grid cells (in rows). The environmental variables measure hydrography, habitat, food availability and anthropogenic pressures, which are known to affect the distribution of fish species. These are:  
+
+- Depth: depth in meter, directly measured during the survey.
+- SBT: monthly sea bottom temperature in °C from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- SBS: monthly sea bottom salinity from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- Chl: Chlorophyll a concentration (in $mg.m^{-3}$) as a proxy for primary production and food availability from the GlobColour database
+- SBT_sea: seasonality of sea bottom temperature, calculated as the difference between the warmest and the coldest month of the year.
+- Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
+- Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
 
 Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/CleanDataTER.html).  
 
@@ -78,67 +97,46 @@ Using this fish community of the Northeast Atlantic as an example, you will lear
 
 ## 2.1 Calculate diversity indices
 
-We use the function `FD()` from the `FD package`. Please see the help `?dbFD` to inspect the function and all its options. 
+We use the function `FD()` from the `FD package`. Please see the help `?dbFD` to inspect the function and all its options. The option `stand.FRic=T` means that FRic will range between 0 and 1
 
-Be aware, the computation of `FD` can take several minutes.
+Be aware, the computation of `dbFD` can take several minutes.
 ```{r}
-FD<-dbFD(trait, abu, stand.FRic=T)  
-#stand.FRic=T, means FRic will range between 0 and 1
+fishFD<-dbFD(trait, abu, stand.FRic=T)  
 ```
 
 ## 2.2 Inspect results
 
 ```{r}
-FD$nbsp  ### Species Richness              
-FD$FRic  ### Functional Richness           
-FD$FEve  ### Functional Eveness            
-FD$FDiv  ### Functional Divergence         
-FD$RaoQ  ### Functional Entropy            
-FD$CWM   ### Community weighted mean traits 
+names(fishFD)
 ```
+
+
+- nbsp is the Species Richness              
+- FRic is the Functional Richness           
+- FEve is the Functional Eveness            
+- FDiv is the Functional Divergence         
+- RaoQ is the Functional Entropy            
+- CWM contains the Community weighted mean traits 
 
 ## 2.3 Reformat the output
 
 ```{r}
 # Reformat into an output data frame
-FD<-do.call(cbind, FD)
+fishFD<-do.call(cbind, fishFD)
 
 ## Add lon, lat to output data frame
-FD[,c("lon","lat")]<-coo
+fishFD[,c("lon","lat")]<-coo
 ```
 
 
 # 3. Plot biodiversity indices by lat,long
 
-We will define a function to plot a map with the diversity indices (no need to fully understand the R-code of the function here).
-
 ```{r}
 colpal<-rev(brewer.pal(11,"RdYlBu")) # Color palette for the map
-# Plotting function 
-funPlot<-function(Var){
-  colnames(FD)[which(colnames(FD)==Var)]<-"Var"
-  ggplot() +
-    geom_tile(data=FD,aes(x=lon,y=lat,fill=Var)) + # 
-    scale_fill_gradientn(name = Var, colours=colpal, na.value = 'white')+#,limits=c(0,25100)) +
-    borders(fill="gray44",colour="black") +
-    coord_quickmap(xlim=c(range(FD$lon)),ylim=c(range(FD$lat)))+
-    labs(x = "Lon",y="Lat")+
-    theme(legend.position = c(0.93,0.8))+
-    theme(legend.title = element_text(size = 8),legend.text = element_text(size = 7))+
-    guides(shape = guide_legend(override.aes = list(size = 0.2)))+
-    theme(panel.background = element_rect(fill=alpha('light blue', 0.4), colour = 'black'))
-}
+#We plot the CWM of Trophic level
+mapggplot(fishFD$lon, fishFD$lat, 
+          fishFD$CWM.Trophic.level, colpal = colpal)
 
-
-```
-
-```{r}
-# list all output of FD calculation
-Metrics<-colnames(FD)
-Metrics
-
-#We plot the CWM of Trophic level, which is the 9th variable
-funPlot(Var=Metrics[9])# Plot CWM traits and diversity metrics
 ```
 
 # 4. Statistically investigate trait-environment relationships
@@ -151,9 +149,9 @@ Here, we model with GAMS and random forest the trait responses at the community 
 We want to model CWM from environmental data, so we need to merge these information in one data frame.
 
 ```{r}
-# Merge FD with env data frame
-# Because the rows of FD match the rows of env, we can combine them
-FDenv<-cbind(FD,env)
+# Merge fishFD with env data frame
+# Because the rows of fishFD match the rows of env, we can combine them
+FDenv<-cbind(fishFD,env)
 head(FDenv)
 ```
 ## 4.2 Simple exploratory GAMs
@@ -178,6 +176,10 @@ funGam<-function(Var){
 Now, let's try to model trophic level from environmental data 
 
 ```{r}
+# list all output of FD calculation
+Metrics<-colnames(fishFD)
+Metrics
+
 #Plot GAM partial smooth plots and return summary statistics for the fitted model
 funGam(Metrics[9])
 ```
@@ -190,7 +192,7 @@ Here we use a mixed GAM approach taking into account potential spatial autocorre
 We use the function `uGamm()` from the `MuMIn package` which is a wrapper function for gamm. Please see the documentation `?uGamm` to inspect the function and all its options. 
 
 
-```{r}
+```{r eval=FALSE}
 # Create dummy variable to include as random factor
 dummy <- rep(1, dim(FDenv)[1]) ### Dummy variables to be add as random factor (mandatory, but won't 'change' anything)
 
@@ -202,7 +204,7 @@ hist(FDenv$CWM.Trophic.level)
 ```
 
 
-```{r}
+```{r eval=FALSE}
 fitTL <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                    +s(SBT,k=3)
                    +s(SBS,k=3)
@@ -219,7 +221,7 @@ summary(fitTL$gam)
 ```
 
 
-```{r}
+```{r eval=FALSE}
 # Check diagnostics
 par(mfrow=c(2,2))
 gam.check(fitTL$gam)
@@ -227,7 +229,7 @@ gam.check(fitTL$gam)
 
 
 
-```{r}
+```{r eval=FALSE}
 par(mfrow=c(4,2),mar=c(4,4,0.2,0.2))
 plot(fitTL$gam,shade=T,shade.col="grey",res=T,rug=F,pch=20)
 par(mfrow=c(1,1),mar=c(5,4,2,2))
@@ -334,7 +336,7 @@ Please note that you may need to introduce square terms to account for non-linea
 
 Additionnally, you need to load the package `nlme`.
 
-```{r}
+```{r, eval=FALSE}
 library(nlme)
 fitTLglm <- lme(CWM.Trophic.level~Depth+SBT+SBS+Chl+SBT_sea+Chl_sea+Fishing,
                 random = list(dummy=~1), correlation = corGaus(form = ~ lon+lat), # Can try other error structures
