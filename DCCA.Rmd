@@ -16,6 +16,10 @@ This document provides an introduction to double constrained correspondence anal
 
 This tutorial is greatly inspired from the [tutorial by ter Braak C.J.F. et al. 2016](https://ars.els-cdn.com/content/image/1-s2.0-S0048969720357004-mmc4.pdf). Please read the original publication for more details about the double constrained correspondence analysis analysis [DOI 10.1016/j.scitotenv.2020.142171](https://doi.org/10.1016/j.scitotenv.2020.142171)
 
+The example dataset is available for download [here ( NEAtl_FishTraitEnv.Rdata)](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata) and the script [here (DCCA_FishTraitEnv.R)](https://github.com/rfrelat/TraitEnvironment/raw/main/DCCA_FishTraitEnv.R)
+
+
+
 # 0. Preliminaries
 
 ### Load packages and dataset

@@ -17,7 +17,7 @@ This document provides an **introduction to RLQ analysis**, as part of a series 
 Please consult the [tutorial by Dray S. et al. 2016](https://ndownloader.figshare.com/files/5628774) for more details about the RLQ analysis [DOI 10.6084/m9.figshare.c.3306393.v1](https://doi.org/10.6084/m9.figshare.c.3306393.v1)
 
 
-The example dataset is available as the Rdata file `NEAtl_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata) and the script can be found [here](https://github.com/rfrelat/TraitEnvironment/raw/main/RLQ_FishTraitEnv.R)
+The example dataset is available for download [here ( NEAtl_FishTraitEnv.Rdata)](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata) and the script [here (RLQ_FishTraitEnv.R)](https://github.com/rfrelat/TraitEnvironment/raw/main/RLQ_FishTraitEnv.R)
 
 # 1. Preliminaries
 
