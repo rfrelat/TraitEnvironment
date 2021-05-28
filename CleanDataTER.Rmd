@@ -31,14 +31,14 @@ We will use example dataset which is available in the zip archive `NEAtl_FishTra
 
 The selection of variables is a key step for trait-environment analysis.
 
-**Variables must be generic** enough so that most of species are concerned (e.g. if fish farming concerns one household over the whole population, no variable about fish farming will be selected, unless your initial objective has a special interest about fish).  
+**Variables must be generic** enough so that most of species are concerned. For instance, if only one species is swimming in schools over 50+ species, then keeping the binary variable *swimming in schools* is not relevant for this dataset - it would give more weights to the single species swimming in schools (unless your initial objective has a special interest about swimming behavior).
 
-**Remove obviously correlated variables**. For instance, age at maturation is highly correlated with lifespan. If both variables are included, double weight will be given to this characteristic. A good solution to remove this correlation is to compute ratios, e.g. age at maturation divided by lifespan which is the percentage of lifespan before maturation/first spawning. Yet, sometimes correlated variables could have different meaning, and it would be important to keep them both.  
+**Remove obviously correlated variables**. For instance, age at maturation is highly correlated with lifespan. If both variables are included, double weight will be given to this characteristic. A good solution to remove this correlation is to compute ratios, e.g. age at maturation divided by lifespan which is the percentage of lifespan before maturation/first spawning. Yet, sometimes correlated variables could have different meaning, and it can be important to keep them both.  
 
 **Remove the geographic variables** or other variables that are not directly measured but a proxy. For instance, *habitat* or *temperature tolerance* are not a good trait to investigate  trait-environment relationship because it will be directly correlated with temperature. If you include temperature tolerance as a variable, you will force the results to follow the temperature gradient. Similarly, *latitude* would be a poor environmental variable because it is mostly a proxy of temperature gradient.  
 
 **Include enough variables** to be able to depict all the diversity of traits and environmental condition that we want to consider. For traits, one could think of the main dimensions, growth, reproduction, mobility, feeding. 
-Ideally, the number of variables per dimensions would be somehow balanced. Else, one need to know that some dimensions are given more importance.
+Ideally, the number of variables per dimensions would be somehow balanced. Else, one must keep in mind that some dimensions are given more importance.
 
 An exploratory analysis is a necessary step to select the relevant variables.
 
@@ -49,6 +49,8 @@ There are many sources of information for trait dataset depending on the type of
 For fish, the largest resource is [Fishbase](https://www.fishbase.de/). For benthos, the [Biological Traits Information Catalogue (BIOTIC)](http://www.marlin.ac.uk/biotic/) collated multiple traits for benthic community ecology.  
 
 Other efforts to curate databases were published in data repository, such as:
+
+
 - traits for marine fish in the North Atlantic in Pangea [DOI 10.1594/PANGAEA.900866](https://doi.pangaea.de/10.1594/PANGAEA.900866)   
 - marine copepods traits in Earth System Science Data [DOI 10.5194/essd-11-301-2019](https://doi.org/10.5194/essd-11-301-2019)  
 
@@ -64,7 +66,7 @@ dim(trait)
 names(trait)
 ```
 
-The table `trait` contain `r ncol(trait)` variables (in column) characterizing `r nrow(trait)` taxa (in rows). Among these variables, there is:  
+The table `trait` contain `r ncol(trait)` variables (in column) characterizing `r nrow(trait)` taxa (in rows). Among these variables:
 
 - family, genus, species: taxonomic information of the taxa
 - taxon: scientific name of the taxa
@@ -99,9 +101,9 @@ summary(trait$tl)
 
 Histograms may be the most intuitive graphic, but the visual output dependents on the number of bars plotted (the number of classes) and the separation. 
 
-Boxplot represent the key distribution statistics (quartiles) in a graph. The middle bold line represent the median, separating the dataset in two with half the dataset with higher values than the median. The gray box represent the first and third quartiles (i.e. the interquartile range, IQR), i.e. half the dataset are included in this box, 25% have higher value than the third quartile (Q3), and the other fourth have lower values than the first quartile (Q1). The outliers are represented as dots if they are higher than $Q3 +1.5*IQR$ or lower than $Q1-1.5*IQR$.  
+Boxplot represent the key distribution statistics (quartiles) in a graph. The middle bold line represent the median, separating the dataset in two with half the dataset having higher values than the median. The gray box represent the first and third quartiles (i.e. the interquartile range, IQR), i.e. half the dataset are included in this box, 25% have higher value than the third quartile (Q3), and the other quarter have lower values than the first quartile (Q1). The outliers are represented as dots if they are higher than $Q3 +1.5*IQR$ or lower than $Q1-1.5*IQR$.  
 
-In both case, the distribution of values are well spread, and tropic level doesn't require data transformation.
+In both case, we see that the distribution of values are well spread, and tropic level doesn't require data transformation.
 
 Let's now look at the distribution of offspring size (in mm).
 
@@ -112,7 +114,7 @@ boxplot(trait$offspring.size, main="Boxplot", ylab="Offspring size")
 
 summary(trait$offspring.size)
 ```
-Most species have offspring size lower than 4 mm (Q3), while few species have very large offspring (max 900 mm). Hence it may be justified to transform this variable.  
+Most species have offspring size lower than 4 mm (Q3), while few species have very large offspring (max 900 mm). Hence it is strongly recommended to transform this variable.  
 
 There are multiple choices of transformation. Log transformation is very efficient but require that all values are positive and higher than 0. Square-root transformation (or other power transformation) also requires positive values, but can handle 0s. Square-root transformation is less strong than log-transformation (but cube- or eighth-root transformation can be very efficient too).  
 In our case, the log-transformation seems the most appropriate for this variable. 
@@ -129,7 +131,7 @@ So we create a new variable with log-transformed offspring size
 trait$offspring.size_log <- log(trait$offspring.size)
 ```
 
-The same is true for fecundity and we will log-transform it as well.
+The same is true for fecundity (very skewed distribution) so we will log-transform it as well.
 ```{r, message=FALSE}
 trait$fecundity_log <- log(trait$fecundity)
 ```
@@ -152,7 +154,7 @@ panel.cor.m <- function(x, y, digits=2)
 ```
 
 
-We must first select the continuous variables (can't display categorical variables).
+We must first select the continuous variables (it can't display categorical variables).
 ```{r, message=FALSE}
 continuous <- c("tl","offspring.size_log","age.maturity","fecundity_log",
                 "length.infinity","growth.coefficient", "length.max","age.max")
@@ -162,7 +164,9 @@ pairs(trait[,continuous], lower.panel=panel.smooth,
 ```
 
 
-Length infinity is strongly positively correlated with maximum length (rho >0.7), and negatively with growth coefficient (rho <-0.75). We will then remove length infinity for the following TER analysis. The rest is *acceptable* (note: there is no rule set in stone for *acceptable* level of correlation).
+Length infinity is strongly positively correlated with maximum length (rho >0.7), and negatively with growth coefficient (rho <-0.75). So we will remove length infinity from further analysis. The other correlations are *acceptable* (here below 0.7).  
+
+*Note: there is no rule set in stone for what is an acceptable level of correlation*.
 
 ### 2.4 Check distribution of categorical variables
 
@@ -175,7 +179,10 @@ table(trait$spawning.type, useNA="ifany")
 barplot(table(trait$spawning.type, useNA="ifany"))
 ```
 
-The dataset is largely dominated by non-guarder. The three categories are non equally distributed, but the number of category is reasonably low and each category is represented by at least 62 taxa. However the issue here are the NAs, which in most cases are not tolerated in analysis.
+The dataset is largely dominated by non-guarder. The three categories are non equally distributed, but the number of category is reasonably low and each category is represented by at least 62 taxa. However the issue here are the NAs, which in most cases are not tolerated in TER analysis.  
+
+
+Let's look at another categorical variable: *habitat*. 
 
 ```{r, out.width="50%", message=FALSE}
 nhabitat <- table(trait$habitat, useNA="ifany")
@@ -186,11 +193,11 @@ barplot(matrix(nhabitat, ncol=1),
         args.legend = list("x"="center"))
 ```
 
-Habitat is the typical example of a variable with too many categories. The fact that there is only 9 taxa as non-pelagic, and 22 as reef-associated will give a relatively large weight to these taxa. It might be good to define broader categories (when possible) or simply discard this categorical variable.
+Habitat is the typical example of a variable with too many categories. The fact that there are only 9 taxa as non-pelagic, and 22 as reef-associated will give a relatively large weight to these taxa. It might be good to define broader categories (when possible) or simply discard this categorical variable.
 
 #### 2.5 Simplify the trait dataset
 
-For simplicity we decided to keep only seven continuous variables. It is a good idea to keep the name of species as names of the rows to help matching the rows in a later stage.
+For simplicity we decided to keep only seven continuous variables. It is a good idea to keep the name of species as names of the rows in the trait table to help matching the rows at a later stage.
 
 ```{r, message=FALSE}
 row.names(trait) <- trait$taxon
@@ -203,11 +210,11 @@ trait <- trait[,keepTraits]
 
 dim(trait)
 ```
+
 ## 3 Environemental variables
 
 If you don't have in-situ measurement, there are many other source of data if you have the coordinates of the sites. 
-sdmpredictors is a comprehensive list of spatially defined environmental drivers (but considered constant in time, impossible to study temporal dynamics)
-Other sources of temporally resolved dataset is Copernicus. Please visit xx for more information on how to extract spatially and temporally resolved data in R.
+`sdmpredictors` is a comprehensive list of spatially defined environmental drivers (but considered constant in time, impossible to study temporal dynamics). Other sources of temporally resolved dataset is Copernicus. Please visit https://rfrelat.github.io/SpatialR.html for more information on how to extract spatially and temporally resolved data in R.
 
 ### 3.1 Load environmental dataset
 
@@ -219,7 +226,7 @@ dim(env)
 names(env)
 ```
 
-The table `env` contain `r ncol(env)` variables (in column) characterizing `r nrow(env)` sites (in rows). Among these variables, there is: 
+The table `env` contains `r ncol(env)` variables (in column) characterizing `r nrow(env)` sites (in rows). Among these variables: 
 
 - Longitude and Latitude: coordinates of the grid cell
 - Depth: depth in meter, directly measured during the survey.
@@ -233,18 +240,18 @@ The table `env` contain `r ncol(env)` variables (in column) characterizing `r nr
 
 ### 3.2 Check distribution and correlation among variables
 
-Same principle applies for the environmental variables as in the trait variables. To have an overview of the variables, we can create a boxplot of the variables scaled (so they have no difference in unit). 
+The same considerations apply for the environmental variables as for the trait variables. To get an overview of the distribution of the variables, we can create a boxplot of the scaled variables (the scaling remove the difference in units). 
 
 ```{r, message=FALSE}
 boxplot(scale(env))
 ```
 
 
-The distribution of SBS is not wide, but can't say that it is bad.
+The distribution of SBS (salinity) is not wide, but we will keep it as it is.
 
 ### 3.2 Maping the environement variables
 
-Another interesting feature is to look at the spatial distribution of environmental variables (to visually check if there are any errors).
+Another interesting feature is to look at the spatial distribution of environmental variables (to visually check if there is any error).
 
 For that, we will define a ggplot2 customized function (no need to understand it fully).
 
@@ -293,7 +300,7 @@ dim(abu)
 The table `abu` contain the abundance of `r ncol(abu)` species (in column) in `r nrow(abu)` sites. 
 
 ## 4.2 Discard rare species
-Rare species can have a strong role in the TER analysis and keeping them or not is tricky. Additionally, many rare species are also absent from trait database, so it is a fine line.
+Rare species can have a strong role in the TER analysis and keeping them or not is tricky. Additionally, many rare species are also absent from trait database, so removing rare species might also help the collection of traits.
 
 Let's calculate the occurrence of species, i.e. the number of time each species were recorded.
 
@@ -316,9 +323,9 @@ plot(sort(totabu), type="l",
      ylab="Total abundance")
 ```
 
-Same pattern here, most of the species have low abundance.
+Same pattern here, most of the species have very low abundance.
 
-We could cross these information to check the relationship between occurrence and total abundance in a log-scale plot (parameter `log="xy"`). Each dot represent one species.
+We could cross these two information to check the relationship between occurrence and total abundance in a log-scale plot (parameter `log="xy"`). Each dot represent one species.
 
 ```{r, message=FALSE}
 plot(nocc,totabu, log="xy",
@@ -326,7 +333,7 @@ plot(nocc,totabu, log="xy",
      ylab="Total abundance")
 ```
 
-There are no golden rule to decide which species to keep or which one to discard. It depends on the analysis (it it strongly influenced by rare species or not) and on the objectives of the study. Whatever the choice, it must be reported in the methodology. 
+There are no golden rule to decide which species to keep or which one to discard. It depends on the analysis (if the method is strongly influenced by rare species or not) and on the objectives of the study. Whatever the choice, it must be reported. 
 
 For our examples, we decided to remove all species that occurred in less than 10% of the sites (`r round(nrow(abu)*0.1)` occurrences). 
 
@@ -382,7 +389,8 @@ env <- env[,-which(names(env)%in%c("Longitude", "Latitude"))]
 dim(env)
 ```
 
-One last check, we want to see if there are NAs in our tables (which might limit the choice of method). Because our dataset is complete, we did not spend much time about this. But in most cases, it could be one of the most restricting factor when selecting species and sites. Let's see how many NAs there is per variable.
+
+One last check, we need to make sure there are no NAs in our tables (which might limit the choice of method). Because our dataset is complete, we did not spend much time about this. But in most cases, it could be one of the most restricting factor when selecting species and sites. Let's see how many NAs there is per variable.
 
 ```{r}
 apply(is.na(env),2,sum)
@@ -390,7 +398,7 @@ apply(is.na(env),2,sum)
 apply(is.na(trait),2,sum)
 ```
 
-It would be wise to recheck the correlation and everything we did before on this reduced set of species and sites. 
+It is recommended to recheck the correlations and go back to steps 2 and 3 on this reduced set of species and sites. 
 
 ## 4.4 Save the output
 Because there are many tables and all of them are linked, it is handy to save them all in one single R readable file with the function ´save()`.
@@ -405,11 +413,11 @@ save(abu, trait, env, coo,
 
 # Conclusion
 
-These are some of the considerations that need to tackle. Now you are ready to investigate your trait environment-relationship in your dataset. There are multiple methods, that differ slightly in their aim and hypothesis. Among them:
+We presented some of the considerations that need to be tackled when preparing dataset for investigating trait-environment relationship. Once the dataset is ready, there are multiple methods that can be used, each of them differ slightly in their aim and hypothesis. Among them:
 
-1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/CWM.html) and diversity indicators and link them to environmental variables.
-2. multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html) or double constrained correspondence analysis [(dc-ca)](https://rfrelat.github.io/DCCA.html)
-3. Hierarchical Modelling of Species Communities [(HMSC)](https://rfrelat.github.io/HMSC.html)
+1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/CWM.html) and link them to environmental variables.
+2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html) or double constrained correspondence analysis [(dc-ca)](https://rfrelat.github.io/DCCA.html)
+3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/HMSC.html)
 
 
 

@@ -12,6 +12,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+**This document is a work in progress ! Use only with extreme care. **
+
 This document provides an introduction to double constrained correspondence analysis (DC-CA). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/). 
 
 This tutorial is greatly inspired from the [tutorial by ter Braak C.J.F. et al. 2016](https://ars.els-cdn.com/content/image/1-s2.0-S0048969720357004-mmc4.pdf). Please read the original publication for more details about the double constrained correspondence analysis analysis [DOI 10.1016/j.scitotenv.2020.142171](https://doi.org/10.1016/j.scitotenv.2020.142171)

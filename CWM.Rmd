@@ -129,7 +129,7 @@ fishFD[,c("lon","lat")]<-coo
 ```
 
 
-# 3. Plot biodiversity indices by lat,long
+## 2.4 Map biodiversity indices
 
 ```{r}
 colpal<-rev(brewer.pal(11,"RdYlBu")) # Color palette for the map
@@ -139,12 +139,12 @@ mapggplot(fishFD$lon, fishFD$lat,
 
 ```
 
-# 4. Statistically investigate trait-environment relationships
+# 3. Statistically investigate trait-environment relationships
 
 Here, we model with GAMS and random forest the trait responses at the community level (using CWM).
 
 
-## 4.1 Preparation of the dataset
+## 3.1 Preparation of the dataset
 
 We want to model CWM from environmental data, so we need to merge these information in one data frame.
 
@@ -154,7 +154,7 @@ We want to model CWM from environmental data, so we need to merge these informat
 FDenv<-cbind(fishFD,env)
 head(FDenv)
 ```
-## 4.2 Simple exploratory GAMs
+## 3.2 Simple exploratory GAMs
 
 We use the function `gam()` from the `mgcv package`. Please see the documentation `?gam` to inspect the function and all its options. 
 
@@ -184,27 +184,29 @@ Metrics
 funGam(Metrics[9])
 ```
 
-## 4.3 Detailed and thorough model selection
+## 3.3 Detailed and thorough model selection
 
-## 4.3.1 Considering potential spatial autocorrelation
+### 3.3.1 Considering potential spatial autocorrelation
 
 Here we use a mixed GAM approach taking into account potential spatial autocorrelation (by allowing for correlated error structures)
 We use the function `uGamm()` from the `MuMIn package` which is a wrapper function for gamm. Please see the documentation `?uGamm` to inspect the function and all its options. 
 
+We will use trophic level as an example. First, we check distribution of response (below with `hist()`). Consider log transforming or change family statement in gam in case of strong deviations from normal distribution.
+
+```{r}
+# Check distribution of response
+hist(FDenv$CWM.Trophic.level) 
+```
+
+Then we can compute the mixed GAM considering potential spatial autocorrelation.  
+
+**Be aware, the computation can take several minutes.**
 
 ```{r eval=FALSE}
 # Create dummy variable to include as random factor
-dummy <- rep(1, dim(FDenv)[1]) ### Dummy variables to be add as random factor (mandatory, but won't 'change' anything)
+dummy <- rep(1, dim(FDenv)[1]) 
+### Dummy variables to be add as random factor (mandatory, but won't 'change' anything)
 
-# Trophic level as an example
-# Check distribution of response
-hist(FDenv$CWM.Trophic.level) 
-# Consider log transforming or change family statement in gam in case of strong deviations from normal distribution 
-
-```
-
-
-```{r eval=FALSE}
 fitTL <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                    +s(SBT,k=3)
                    +s(SBS,k=3)
@@ -214,6 +216,11 @@ fitTL <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                    +s(Fishing, k=3),
                    gaussian(link = "identity"),random = list(dummy=~1), correlation = corGaus(form = ~ lon+lat), # Can try other error structures
                    data = FDenv, control=lmeControl(opt="optim"))
+```
+```{r echo=FALSE}
+load(file = "fitTL.Rdata")
+```
+```{r}
 # Inspect summary statistics
 summary(fitTL$lme)
 summary(fitTL$gam)
@@ -221,28 +228,32 @@ summary(fitTL$gam)
 ```
 
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # Check diagnostics
 par(mfrow=c(2,2))
 gam.check(fitTL$gam)
 ```
 
-
-
-```{r eval=FALSE}
+```{r eval=TRUE}
 par(mfrow=c(4,2),mar=c(4,4,0.2,0.2))
 plot(fitTL$gam,shade=T,shade.col="grey",res=T,rug=F,pch=20)
 par(mfrow=c(1,1),mar=c(5,4,2,2))
 ```
 
-## 4.3.2 Automated model selection
+### 3.3.2 Automated model selection
 
 Here, we perform automated model selection testing all combinations of predictors using the `dredge()` function (and rank according to AICc)
 Please see the documentation `?dredge` from the `MuMIn package` to inspect the function and all its options.
 
 **Be aware, the computation can take several minutes.**
+
 ```{r eval=FALSE}
 results <- dredge(fitTL, m.lim=c(1,4), rank="AICc") # Here test max 4 variables per model to reduce run time
+```
+```{r echo=FALSE}
+load("results.Rdata")
+```
+```{r}
 subset(results, delta <5)  # Depth, SBT and fishing are key variables
 # Calculate and view relative variable importance (RVI) scores
 importance(results) 
@@ -255,33 +266,36 @@ fitTLb <- uGamm(CWM.Trophic.level ~ s(Depth, k=3)
                #+s(Fishing, k=3),
                gaussian(link = "identity"),random = list(dummy=~1), correlation = corGaus(form = ~ lon+lat), # Can try other error structures
                data = FDenv, control=lmeControl(opt="optim"))
-```
 
-```{r eval=FALSE}
+```
+```{r echo=FALSE}
+load("fitTLb.Rdata")
+```
+```{r}
 # Inspect summary statistics
 summary(fitTLb$lme)
 summary(fitTLb$gam)
 ```
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # Check diagnostics
 par(mfrow=c(2,2))
 gam.check(fitTLb$gam)
 ```
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # Plot model smooth terms
 par(mfrow=c(2,1),mar=c(4,4,0.2,0.2))
 plot(fitTLb$gam,shade=T,shade.col="grey",res=T,rug=F,pch=20)
 ```
 
 
-#5. Random forest
+# 4. Random forest
 
 Instead of GAM, we can try to model the CWM trait with random forest. 
 We use the function `randomForest()` from the `randomForest package`. Please see the documentation `?randomForest` to inspect the function and all its options. 
 
-Again we create a function to simply compute random forests
+Again we create a function to compute random forests and plot the outputs.
 ```{r}
 # Wrapper function to explore RF for a given trait
 funRf<-function(Var){
@@ -305,49 +319,54 @@ Now, we compute the randomForest for CWM trophic level.
 fitTLrf <- funRf(Metrics[9])# Plot random forest response plots and summary stats
 ```
 
-### Check error against number of trees used for training
+#### Check error against number of trees used for training
 ```{r}
 plot(fitTLrf) 
 ```
 It is stable after 200 (hence 100 trees is more than enough).
 
-### Inspect summary stats
+#### Inspect summary stats
 ```{r}
 print(fitTLrf) # Inspect summary stats
 ```
 
-### Check variable importance plots
+#### Check variable importance plots
 
 ```{r}
 varImpPlot(fitTLrf)
 ```
 
 
-
-# Conclusion 
-
-# References
-
-# Optional - GLMM
+# Optional - Generalized linear mixed models (GLMM)
 
 We test GLMM and extract parameters to facilitate comparisons across organism groups and areas. 
 
 Please note that you may need to introduce square terms to account for non-linearities.
 
-Additionnally, you need to load the package `nlme`.
+Additionally, you need to load the package `nlme`.
+
+```{r}
+library(nlme)
+```
 
 ```{r, eval=FALSE}
-library(nlme)
 fitTLglm <- lme(CWM.Trophic.level~Depth+SBT+SBS+Chl+SBT_sea+Chl_sea+Fishing,
-                random = list(dummy=~1), correlation = corGaus(form = ~ lon+lat), # Can try other error structures
+                random = list(dummy=~1), correlation = corGaus(form = ~ lon+lat),
                 data = FDenv, control=lmeControl(opt="optim"))
+```
+
+```{r, echo=FALSE}
+load("fitTLglm.Rdata")
+```
+
+```{r}
 summary(fitTLglm)
 anova(fitTLglm)
 
 # Extract parameters
-str(summary(fitTLglm))
-summary(fitTLglm)$coefficients
+summary(fitTLglm)
 
+summary(fitTLglm)$coefficients
 
 ##Plot some diagnostics
 plot(fitTLglm)

@@ -196,6 +196,7 @@ summary {
 </div>
 
 
+<p><strong>This document is a work in progress ! Use only with extreme care. </strong></p>
 <p>This document provides an introduction to double constrained correspondence analysis (DC-CA). The tutorial targets students and scientists in ecology with previous knowledge of the <a href="https://cran.r-project.org/">R software</a>.</p>
 <p>This tutorial is greatly inspired from the <a href="https://ars.els-cdn.com/content/image/1-s2.0-S0048969720357004-mmc4.pdf">tutorial by ter Braak C.J.F. et al. 2016</a>. Please read the original publication for more details about the double constrained correspondence analysis analysis <a href="https://doi.org/10.1016/j.scitotenv.2020.142171">DOI 10.1016/j.scitotenv.2020.142171</a></p>
 <p>The example dataset is available for download <a href="https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata">here ( NEAtl_FishTraitEnv.Rdata)</a> and the script <a href="https://github.com/rfrelat/TraitEnvironment/raw/main/DCCA_FishTraitEnv.R">here (DCCA_FishTraitEnv.R)</a></p>
@@ -450,11 +451,11 @@ Species_level_test</code></pre>
 ## Observation: 0.1484754 
 ## 
 ## Based on 999 replicates
-## Simulated p-value: 0.082 
+## Simulated p-value: 0.09 
 ## Alternative hypothesis: greater 
 ## 
 ##      Std.Obs  Expectation     Variance 
-## 1.4344678231 0.1097367020 0.0007293022</code></pre>
+## 1.3846726312 0.1098936137 0.0007763715</code></pre>
 <pre class="r"><code>p_value_species_level_test &lt;- Species_level_test$pvalue</code></pre>
 <p>Traits and species plots</p>
 <pre class="r"><code>plot(Step2_wrRDA_SNC_on_Traits)</code></pre>
@@ -486,7 +487,7 @@ print(round(eff1,2))</code></pre>
 ##   0.16   0.21   0.18   0.07   0.07   0.02   0.01</code></pre>
 <p>P-value of the species-level test in dc-CA</p>
 <pre class="r"><code>p_value_species_level_test</code></pre>
-<pre><code>## [1] 0.082</code></pre>
+<pre><code>## [1] 0.09</code></pre>
 </div>
 </div>
 <div id="cca-of-the-transposed-community-table-on-to-the-traits" class="section level3">
@@ -568,7 +569,7 @@ Sample_level_test</code></pre>
 ## Alternative hypothesis: greater 
 ## 
 ##      Std.Obs  Expectation     Variance 
-## 4.455318e+01 4.176180e-02 1.056533e-04</code></pre>
+## 4.585014e+01 4.228921e-02 9.953092e-05</code></pre>
 <pre class="r"><code>p_value_sample_level_test &lt;- Sample_level_test$pvalue</code></pre>
 <p>Environmental variables and sample plots:</p>
 <pre class="r"><code>plot(Step4_wRDA_CWM_on_Env)</code></pre>
@@ -646,7 +647,7 @@ summary_dcCA[,1:3]</code></pre>
 ##  8 Efficiency of extra E constraint      0.7050569  0.58811620  0.48872638
 ##  9 Efficiency of extra T constraint      0.1550603  0.20892843  0.17816484
 ## 10 Efficiency of (T,E) vs no constraint  0.1464906  0.16540847  0.09507151</code></pre>
-<p>P-value of dc-CA test: 0.082 (max test:maximum of p-values of the sample-level test and species-level test). Notes:</p>
+<p>P-value of dc-CA test: 0.09 (max test:maximum of p-values of the sample-level test and species-level test). Notes:</p>
 <p>1: dc-CA eigenvalues are between 0 and 1 2: rFC between constrained sample and species scores 3: Chessel’s fourth-corner correlation or 2 expressed as ratio of maximum (sqrt of CA-eigenvalues) 4: 1 expressed as percentage of the total inertia (weighted variance) 5: 1 expressed as percentage of the total explained inertia 6: Trait-structured variation (CWMs wrt orthonormal traits) explained by the environmental variables 7: Environmentally structured variation (SNCs wrt orthonormal env vars) explained by traits 8: Ratio of double (T,E) vs single (T) constrained eigenvalues (efficiency of the environmental variables to explain the trait-structured variation) 9: Ratio of double (T,E) vs single (E) constrained eigenvalues (efficiency of the traits to explain the environmentally structured variation) 10: Ratio of double (T,E) vs unconstrained (CA) eigenvalues (efficiency of the trait and environmental variables to explain the abundance table; it is the squared Chessels’s correlation ratio</p>
 <p>From the single constrained (CCA) analyses: Variation in abundance table (adjusted R2) explained by :</p>
 <ul>
