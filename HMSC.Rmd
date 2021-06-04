@@ -262,23 +262,7 @@ predY = apply(abind(predY,along=3),c(1,2), mean)
 plot(colSums(((m$Y>0)*1)/m$ny), MF$R2,main=paste("Mean R2 = ", round(mean(MF$R2),2),".", sep=""), xlab = "Prevalence")
 ```
 
-## 4.3 Plot species-environment relationships
-```{r, fig.align = "center"}
-# Shown are all species with 90% posterior support for having positive (red) or negative(blue) responses to environmental covariates
-beta = getPostEstimate(m, "Beta")
-plotBeta(m, beta, supportLevel=.9, spNamesNumbers = c(FALSE, FALSE), covNamesNumbers = c(TRUE, FALSE), plotTree = T)
-```
-
-
-
-## 4.3 Plot trait-environment relationships
-```{r, fig.align = "center"}
-gamma = getPostEstimate(m, "Gamma")
-plotGamma(m, gamma, supportLevel=.8) 
-# modify support level to highlight stronger or weaker posterior support for positive/ negative relationship
-```
-
-## 4.4 Varience Partitioning
+## 4.3 Varience Partitioning
 ```{r,  fig.align = "center"}
 par(mfrow=c(1,1))
 # Specify groups of how the variation should be partitioned You can also combine groups 
@@ -288,11 +272,30 @@ groupnames = m$covNames[-1]
 #compte species specific variance partitioning
 VP = computeVariancePartitioning(hM = m, group = group, groupnames = groupnames)
 
-plotVariancePartitioning(m, VP, viridis(8)) #ignore random effect NA since we havn't specified a random effect 
+plotVariancePartitioning(m, VP, viridis(8))
 ```
 
 
-## 4.5 Trait specifc metrics
+## 4.4 Plot species-environment relationships
+```{r, fig.align = "center"}
+# Shown are all species with 90% posterior support for having positive (red) or negative(blue) responses to environmental covariates
+beta = getPostEstimate(m, "Beta")
+plotBeta(m, beta, supportLevel=.9, spNamesNumbers = c(FALSE, FALSE), covNamesNumbers = c(TRUE, FALSE), plotTree = T)
+```
+
+
+
+## 4.5 Plot trait-environment relationships
+```{r, fig.align = "center"}
+gamma = getPostEstimate(m, "Gamma")
+plotGamma(m, gamma, supportLevel=.8) 
+# modify support level to highlight stronger or weaker posterior support for positive/ negative relationship
+```
+
+
+
+
+## 4.6 Trait specifc metrics
 We can ask about the influence of traits on species abundances, i.e. how much do traits explain out of the variation in species abundances 
 
 ```{r}
@@ -308,7 +311,7 @@ barplot(VP$R2T$Beta[-1])
 #The traits explain also not much of the variation in the species niches, with traits explaining most out of the variation in species responses to SBT, SBT_sea and fishing with ca. 2.5% each
 ```
 
-## 4.5 Trait-enviornment relationships
+## 4.7 Trait-enviornment relationships
 Now let's see how the predicted trait-environment responses are over the realized environmental gradient. Here we exemplified for all CWM trait responses as well as species richness with SBT as focal variable.
 
 ```{r}
@@ -368,7 +371,7 @@ funPlot(Var=Metrics[2])# Plot CWM traits and diversity metrics
 ```
 
 
-## 4.6 Species co-occurrance patterns at random effect level 
+## 4.8 Species co-occurrance patterns at random effect level 
 Here we illustrate the residual association plot among species at the level of grid cell. Pairs of species illustrated by red and blue show positive and negative associations, respectively, with statistical support of at least 95% posterior probability
 
 
@@ -387,6 +390,105 @@ for (r in 1:m$nr){
 
 
 
+## 5. A brief excursion considering only occurrance data instead of abundance
+
+We build a presence-absence model with the same structure and specifications as above. For this we need to change the link function to "probit" and transform the abundance data to presence-absence.
+
+```{r}
+m = Hmsc(Y= 1*(abu>0), XData = env,  XFormula = XFormula, TrFormula = TrFormula, TrData = trait, phyloTree = tree, studyDesign = studyDesign, ranLevels = list("grid.cell"= rL),  distr = "probit")
+```
+
+Next we fit the model as above.
+
+```{r eval=FALSE}
+ m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains) 
+````
+
+
+Load the fitted model
+```{r}
+load("NorthAtlantic_rL_tree_PA_thin_10_samples_250_chains_4.Rdata")
+```
+
+
+```{r}
+# compute predicted species occurrence matrix from posterior samples 
+predY=computePredictedValues(m)
+
+#evaluate model fit
+MF = evaluateModelFit(hM = m, predY = predY)
+MF
+mean(MF$AUC)
+mean(MF$TjurR2)
+
+#Here, we take the mean of posterior samples for further processing
+predY = apply(abind(predY,along=3),c(1,2), mean)
+
+# Plot species specific R2 in relation to prevalence
+plot(colSums(((m$Y>0)*1)/m$ny), MF$AUC,main=paste("Mean AUC = ", round(mean(MF$AUC),2),".", sep=""), xlab = "Prevalence")
+```
+
+
+Let's jump straight to the model outputs we examined earlier (NOTE: this model did not converge as well and would need to run it longer for more reliable results)
+```{r,  fig.align = "center"}
+par(mfrow=c(1,1))
+# Specify groups of how the variation should be partitioned You can also combine groups 
+group=c(1,2,3,4,5,6,7)
+# Specify group names m$covNames[-1] gives the included covariate names excluding the intercept
+groupnames = m$covNames[-1]
+#compte species specific variance partitioning
+VP = computeVariancePartitioning(hM = m, group = group, groupnames = groupnames)
+
+plotVariancePartitioning(m, VP, viridis(8)) 
+```
+
+Note that  e.g. SBT seems to contribute more to the explained variation for the occurrences of species (17.4%) compared to the abundances (computed above 10.8%)
+
+```{r, fig.align = "center"}
+# Shown are all species with 90% posterior support for having positive (red) or negative(blue) responses to environmental covariates
+beta = getPostEstimate(m, "Beta")
+plotBeta(m, beta, supportLevel=.9, spNamesNumbers = c(FALSE, FALSE), covNamesNumbers = c(TRUE, FALSE), plotTree = T)
+```
+
+Also, responses of species to covariates structuring their presence or absence differ to those structuring abundances. See e.g. clear change of species response patterns in Chl and fishing (now positive) compared to the more negative responses for abundances calculated above. 
+
+
+```{r, fig.align = "center"}
+gamma = getPostEstimate(m, "Gamma")
+plotGamma(m, gamma, supportLevel=.9) 
+
+VP$R2T$Beta
+
+VP$R2T$Y
+```
+
+Here we also see more relationships with high statistical support of traits and environment. However, the patterns we saw earlier, i.e. positive relationships between SBT and Lifespan and Fecundity, are also found here.
+
+We also discover that traits contribute substantially more to the variation of species occurrences than to species abundances (14.3% vs. ~2%). 
+
+Locking at VP$R2T$Beta we see that traits explain 20% of the variation among the species in their responses SBT_sea
+
+```{r}
+# Construct environmental Gradient based on fitted model, specify your focal variable. 
+Gradient = constructGradient(m, focalVariable="SBT", ngrid = 25)
+# make predictions based on fitted model 
+predYgradient = predict(m,XData=Gradient$XDataNew, ranLevels = Gradient$rLNew, studyDesign = Gradient$studyDesignNew, expected = TRUE) 
+
+par(mfrow=c(2,4))
+# measure = T implies trait relationship to focal variable, index = 2 implies second trait of trait matrix (1 is the intercept). 
+
+# traits ~ SBT 
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 2, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 3, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 4, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 5, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 6, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 7, showData =F)
+plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 8, showData =F)
+
+#in a presence absence probit model, measure S provides the response of species richness against your chosen covariate
+plotGradient(m, Gradient, pred=predYgradient, measure="S", index = 1, showData =F) # 
+```
 
 
 
