@@ -1,20 +1,5 @@
----
-title: "Introduction to Hierarchical Modeling of Species Communities (HMSC) - trait environment responses"
-author: "Weigel, B."
-date: "7th June 2021"
-output: 
-  html_document: default
----
-
-```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-This tutorial illustrates how to build and post-process a spatial HMSC model including traits and species 'phylogeny'. The focus is set on modeling trait-environment relationships but we will also explore some other species and community based outputs.
-
-# 1. Preliminaries
-### Load packages and dataset
-```{r, message=FALSE}
 library(Hmsc) 
 library(tidyverse)
 library(viridis)
@@ -23,80 +8,22 @@ library(abind)
 library(RColorBrewer)
 library(ape)
 library(corrplot)
-```
-If you get an error message, check that the R packages and their dependencies are installed correctly. If not, use the command to install all listed packages: `install.packages(c("Hmsc", "tidyverse", "viridis","vioplot","abind","RColorBrewer, "ape", "corrplot"))`.
 
-The example data set is available as the Rdata file `NEAtl_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata).  
-
-Make sure the file `NEAtl_FishTraitEnv.Rdata` is in your working directory, then load it in R.
-
-```{r}
 load("NEAtl_FishTraitEnv.Rdata")
-```
 
-The Rdata file contains four objects: 
-
-- `abu` containing the abundance of taxa in grid cells
-- `env` containing the environmental condition per grid cell
-- `trait` containing the trait information per taxa 
-- `coo` the coordinates of each grid cell
-- `taxo` taxonomic relationship of species (taxonomic/phylogenetic tree)
-
-Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  
-
-```{r}
 all(row.names(abu)==row.names(env))
 all(colnames(abu)==row.names(trait))
-```
 
-## Quick summary of the variables
-
-### Traits
-```{r}
 dim(trait)
 names(trait)
-```
 
-The `trait` table contains `r ncol(trait)`  traits (i.e variable, in column) characterizing `r nrow(trait)` taxa (in rows). The `r ncol(trait)` traits broadly represent the life history and ecology of fish in terms of their feeding, growth, survival and reproduction. These are:  
-
-- Trophic level
-- K: the growth rate, calculated as Von Bertalanffy growth coefficient in year$^{-1}$
-- Lmax: maximum body length in cm
-- Lifespan
-- Offspring.size_log: egg diameter, length of egg case or length of pup in mm
-- Fecundity_log: number of offspring produced by a female per year
-- Age.maturity: in years
-
-Trait values for fecundity and offspring size were log-transformed to reduce the influence of outliers. 
-
-For further analysis in HMSC, convert trait names to one one word per column in case traits consist of multiple words
-```{r}
 trait<-trait %>%  
   dplyr::rename_all(make.names)
 head(trait)
-```
 
-## Environment
-```{r}
 dim(env)
 names(env)
-```
 
-The `env` table contains `r ncol(env)`  environmental variables (in column) characterizing `r nrow(env)` grid cells (in rows). The environmental variables measure hydrography, habitat, food availability and anthropogenic pressures, which are known to affect the distribution of fish species. These are:  
-
-- Depth: depth in meter, directly measured during the survey.
-- SBT: monthly sea bottom temperature in °C from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
-- SBS: monthly sea bottom salinity from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
-- Chl: Chlorophyll a concentration (in $mg.m^{-3}$) as a proxy for primary production and food availability from the GlobColour database
-- SBT_sea: seasonality of sea bottom temperature, calculated as the difference between the warmest and the coldest month of the year.
-- Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
-- Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
-
-## Taxonomic tree
-We build a phylo object from the taxonomic relationships provided in `taxo`
-
-First make sure the taxonomic units are factors
-```{r, fig.height = 10, fig.width = 7, fig.align = "center"}
 str(taxo) #listed as chr
 taxo <- as.data.frame(unclass(taxo)) # make factors
 str(taxo) # now they are!
@@ -130,40 +57,21 @@ tree$edge.length<-rep(1,length(tree$edge))
 #Have a look at the tree
 str(tree)
 plot(tree, cex=0.5)
-```
 
-# 2. Setting up the HMSC model
-
-## 2.1 Define regression model for environmental covariates
-```{r}
 XFormula = as.formula(paste("~",paste(colnames(env), collapse="+")))
 XFormula
-```
-You can also specify second order polynomial response terms for your regression model. Then HMSC fits both, the liner term and the quadratic term as covariates. 
-Here, this is exemplified for SBT, SBS and Chl, where one could ecologically assume bell shaped responses. For reasons of simplicity, we continue with the above defined regression model.
 
-*XFormula = ~ Depth + poly(SBT, degree = 2, raw= TRUE) + poly(SBT, degree = 2, raw= TRUE) + poly(SBS, degree = 2, raw= TRUE) + poly(Chl, degree = 2, raw= TRUE) + SBT_sea + Chl_sea + Fishing*
-
-
-## 2.2 Define regression model for traits
-```{r}
 TrFormula = as.formula(paste("~",paste(colnames(trait), collapse="+")))
 TrFormula
-```
 
-## 2.3 Set up study design with spatial random effect
-```{r}
 studyDesign = data.frame(grid.cell = as.factor(rownames(coo))) # "sample" level is defined as grid.cell
 rL = HmscRandomLevel(sData = coo) # here the random effect is defined to be spatially explicit based on the coordinates of the grid cell
 rL = setPriors(rL,nfMin=1,nfMax=2) # here we set the number of latent variable factors. In this example they are low for computational reasons 
 
-# Have a look at the random effect
+# Have a look at the random effect 
 rL
 head(rL$s)
-```
 
-## 2.4 Set up MCMC sample specifications 
-```{r}
 
 test.run = TRUE # TEST RUN TAKES ABOUT 2 MIN ON MY COMPUTER
 if (test.run){
@@ -179,43 +87,22 @@ if (test.run){
   transient = ceiling(0.5*samples*thin) # burn-in, i.e. number of first iterations which will be cut off
   nChains = 4 # number of independent MCMC chains 
   }
-```
 
-## 2.4 Specify (unfitted) HMSC model structure
-```{r}
 m = Hmsc(Y= abu, XData = env,  XFormula = XFormula, TrFormula = TrFormula, TrData = trait, phyloTree = tree, studyDesign = studyDesign, ranLevels = list("grid.cell"= rL),  distr = "normal")
-```
 
-## 2.5 Fit and save model 
-```{r eval=FALSE}
- m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains) 
+##  m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains)
+## 
+## # You can also run chains in parallel by adding 'nParallel = nChains' in the sampleMCMC() function, but you won't see the progress of the run until it finished.
+## 
+## filename =  paste("NorthAtlantic","_thin_", as.character(thin),"_samples_", as.character(samples),"_chains_", as.character(nChains), ".Rdata",sep = "")
+## 
+## save(m,file=filename)
 
-# You can also run chains in parallel by adding 'nParallel = nChains' in the sampleMCMC() function, but you won't see the progress of the run until it finished.
-
-filename =  paste("NorthAtlantic","_thin_", as.character(thin),"_samples_", as.character(samples),"_chains_", as.character(nChains), ".Rdata",sep = "")
-
-save(m,file=filename)
-```
-You can now either continue with the post-processing of the model with your fitted test run, or maybe better, load the for the course previously fitted model which used a higher thinning, more samples and chains, hence, included more iterations for better convergence of the MCMC chains. 
-
-```{r}
 load("NorthAtlantic_rL_tree_thin_10_samples_250_chains_4.Rdata")
-```
 
-# 3. Check MCMC convergence diagnostics
-```{r}
 # convert model to coda object
 mpost = convertToCodaObject(m)
-```
 
-You can visually check the MCMC convergence and mixing for beta (species-environment) and gamma (trait-environment) parameters
-
-Since we have 7 environmental covariates and 148 species we get 1036 specific mixing plots for the beta parameters ... not too convenient to go through. 
-
-*plot(mpost$Beta)*
-
-Rather have a look at summarized diagnostics 
-```{r}
 # check effective sample size 
 # should ideally be close to your drawn samples, here, 4 (chains) * 250 (samples) = 1000 samples)
 summary(effectiveSize(mpost$Beta)) 
@@ -234,23 +121,10 @@ vioplot(gelman.diag(mpost$Beta,multivariate = FALSE)$psrf,main="psrf(beta)")
 hist(effectiveSize(mpost$Gamma), main="ess(gamma)")
 hist(gelman.diag(mpost$Gamma, multivariate = FALSE)$psrf, main="psrf(gamma)")
 vioplot(gelman.diag(mpost$Gamma,multivariate = FALSE)$psrf,main="psrf(gamma)")
-```
 
-# 4. Post process model results
-## 4.1 Compute predicted values
-```{r}
 # compute predicted species abundance matrix/ posterior samples 
 predY=computePredictedValues(m)
-```
 
-## 4.2 Evaluate model fit (MF)
-For our model type (abundance, normal distribution) MF provides two metrics, calculated for all individual species.
-
-Root Mean Square Error ($RMSE) is the standard deviation of the residuals (prediction errors). Residuals are a measure of how far from the regression line data points are; RMSE is a measure of how spread out these residuals are. In other words, it tells you how concentrated the data is around the line of best fit. 
-
-R$^{2}$ ($R2): your "usual" measure of explained variation. Here prvided species specifically as result of the regression model (XFormula), with included enviornmental covariates
-
-```{r}
 MF = evaluateModelFit(hM = m, predY = predY)
 MF
 mean(MF$R2)
@@ -260,10 +134,7 @@ predY = apply(abind(predY,along=3),c(1,2), mean)
 
 # Plot species specific R2 in relation to prevalence
 plot(colSums(((m$Y>0)*1)/m$ny), MF$R2,main=paste("Mean R2 = ", round(mean(MF$R2),2),".", sep=""), xlab = "Prevalence")
-```
 
-## 4.3 Varience Partitioning
-```{r,  fig.align = "center"}
 par(mfrow=c(1,1))
 # Specify groups of how the variation should be partitioned You can also combine groups 
 group=c(1,2,3,4,5,6,7)
@@ -272,49 +143,23 @@ groupnames = m$covNames[-1]
 #compte species specific variance partitioning
 VP = computeVariancePartitioning(hM = m, group = group, groupnames = groupnames)
 
-plotVariancePartitioning(m, VP, viridis(8))
-```
+plotVariancePartitioning(m, VP, viridis(8)) 
 
-
-## 4.4 Plot species-environment relationships
-```{r, fig.align = "center"}
 # Shown are all species with 90% posterior support for having positive (red) or negative(blue) responses to environmental covariates
 beta = getPostEstimate(m, "Beta")
 plotBeta(m, beta, supportLevel=.9, spNamesNumbers = c(FALSE, FALSE), covNamesNumbers = c(TRUE, FALSE), plotTree = T)
-```
 
-
-
-## 4.5 Plot trait-environment relationships
-```{r, fig.align = "center"}
 gamma = getPostEstimate(m, "Gamma")
 plotGamma(m, gamma, supportLevel=.8) 
 # modify support level to highlight stronger or weaker posterior support for positive/ negative relationship
-```
 
-
-
-
-## 4.6 Trait specifc metrics
-We can ask about the influence of traits on species abundances, i.e. how much do traits explain out of the variation in species abundances 
-
-```{r}
 VP$R2T$Y
 # The traits explain only 1.93% of variation in species abundances 
-```
 
-Let us then ask how much the traits explain out of the variation among the species in their responses to environmental covariates.
-
-```{r}
 VP$R2T$Beta
 barplot(VP$R2T$Beta[-1])
 #The traits explain also not much of the variation in the species niches, with traits explaining most out of the variation in species responses to SBT, SBT_sea and fishing with ca. 2.5% each
-```
 
-## 4.7 Trait-enviornment relationships
-Now let's see how the predicted trait-environment responses are over the realized environmental gradient. Here we exemplified for all CWM trait responses as well as species richness with SBT as focal variable.
-
-```{r}
 # Construct environmental Gradient based on fitted model, specify your focal variable. 
 Gradient = constructGradient(m, focalVariable="SBT", ngrid = 25)
 # make predictions based on fitted model 
@@ -335,12 +180,7 @@ plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 8, showData =
 plotGradient(m, Gradient, pred=predYgradient, measure="Y", index = 50, showData =F) #here examplified for species 50, cod
 
 # Note that the scale of all relationships is very small for the traits
-```
 
-
-## Plotting predicted trait distribution over space 
-
-```{r} 
 S=rowSums(predY)
 #predicted CWM
 predT = (predY%*%m$Tr)/matrix(rep(S,m$nt),ncol=m$nt)
@@ -368,14 +208,7 @@ Metrics
 
 #We plot the CWM of Trophic level, which is the 2nd variable
 funPlot(Var=Metrics[2])# Plot CWM traits and diversity metrics
-```
 
-
-## 4.8 Species co-occurrance patterns at random effect level 
-Here we illustrate the residual association plot among species at the level of grid cell. Pairs of species illustrated by red and blue show positive and negative associations, respectively, with statistical support of at least 95% posterior probability
-
-
-```{r, fig.width= 8, fig.height=8} 
 par(mfrow=c(1,1))
 OmegaCor = computeAssociations(m)
 supportLevel = 0.9
@@ -386,32 +219,13 @@ for (r in 1:m$nr){
   colnames(toPlot)=rownames(toPlot)=gsub("_"," ",x=colnames(toPlot)) 
   corrplot(toPlot[plotOrder,plotOrder], method = "color", col=colorRampPalette(c("blue","white","red"))(200), title=paste("random effect level:",m$rLNames[r]),type="full",tl.col="black",tl.cex=.4, mar=c(0,0,6,0))
 }  
-```
 
-
-
-## 5. A brief excursion considering only occurrance data instead of abundance
-
-We build a presence-absence model with the same structure and specifications as above. For this we need to change the link function to "probit" and transform the abundance data to presence-absence.
-
-```{r}
 m = Hmsc(Y= 1*(abu>0), XData = env,  XFormula = XFormula, TrFormula = TrFormula, TrData = trait, phyloTree = tree, studyDesign = studyDesign, ranLevels = list("grid.cell"= rL),  distr = "probit")
-```
 
-Next we fit the model as above.
+##  m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains)
 
-```{r eval=FALSE}
- m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains) 
-````
-
-
-Load the fitted model
-```{r}
 load("NorthAtlantic_rL_tree_PA_thin_10_samples_250_chains_4.Rdata")
-```
 
-
-```{r}
 # compute predicted species occurrence matrix from posterior samples 
 predY=computePredictedValues(m)
 
@@ -426,11 +240,7 @@ predY = apply(abind(predY,along=3),c(1,2), mean)
 
 # Plot species specific R2 in relation to prevalence
 plot(colSums(((m$Y>0)*1)/m$ny), MF$AUC,main=paste("Mean AUC = ", round(mean(MF$AUC),2),".", sep=""), xlab = "Prevalence")
-```
 
-
-Let's jump straight to the model outputs we examined earlier (NOTE: this model did not converge as well and would need to run it longer for more reliable results)
-```{r,  fig.align = "center"}
 par(mfrow=c(1,1))
 # Specify groups of how the variation should be partitioned You can also combine groups 
 group=c(1,2,3,4,5,6,7)
@@ -440,35 +250,18 @@ groupnames = m$covNames[-1]
 VP = computeVariancePartitioning(hM = m, group = group, groupnames = groupnames)
 
 plotVariancePartitioning(m, VP, viridis(8)) 
-```
 
-Note that  e.g. SBT seems to contribute more to the explained variation for the occurrences of species (17.4%) compared to the abundances (computed above 10.8%)
-
-```{r, fig.align = "center"}
 # Shown are all species with 90% posterior support for having positive (red) or negative(blue) responses to environmental covariates
 beta = getPostEstimate(m, "Beta")
 plotBeta(m, beta, supportLevel=.9, spNamesNumbers = c(FALSE, FALSE), covNamesNumbers = c(TRUE, FALSE), plotTree = T)
-```
 
-Also, responses of species to covariates structuring their presence or absence differ to those structuring abundances. See e.g. clear change of species response patterns in Chl and fishing (now positive) compared to the more negative responses for abundances calculated above. 
-
-
-```{r, fig.align = "center"}
 gamma = getPostEstimate(m, "Gamma")
 plotGamma(m, gamma, supportLevel=.9) 
 
 VP$R2T$Beta
 
 VP$R2T$Y
-```
 
-Here we also see more relationships with high statistical support of traits and environment. However, the patterns we saw earlier, i.e. positive relationships between SBT and Lifespan and Fecundity, are also found here.
-
-We also discover that traits contribute substantially more to the variation of species occurrences than to species abundances (14.3% vs. ~2%). 
-
-Locking at VP$R2T$Beta we see that traits explain 20% of the variation among the species in their responses SBT_sea
-
-```{r}
 # Construct environmental Gradient based on fitted model, specify your focal variable. 
 Gradient = constructGradient(m, focalVariable="SBT", ngrid = 25)
 # make predictions based on fitted model 
@@ -488,13 +281,3 @@ plotGradient(m, Gradient, pred=predYgradient, measure="T", index = 8, showData =
 
 #in a presence absence probit model, measure S provides the response of species richness against your chosen covariate
 plotGradient(m, Gradient, pred=predYgradient, measure="S", index = 1, showData =F) # 
-```
-
-
-
-
-
-
-
-
-
