@@ -1,3 +1,9 @@
+############################################################
+# FutureMares Task 1.2. Trait-environment workshop. 7th June 2021
+# Example data and R code for estimating HSMC 
+# Benjamin Weigel, 7/6/2021.
+##############################################################
+
 knitr::opts_chunk$set(echo = TRUE)
 
 library(Hmsc) 
