@@ -1,0 +1,427 @@
+---
+title: "Dataset preparation for trait-environment analysis"
+author: "Frelat, R."
+date: "7th June 2021"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '../Data')
+```
+
+This document provides a quick introduction to data wrangling. It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/). 
+
+Be aware that this tutorial use `base` R functions (i.e. without any package). There are many other ways to process data in R, but it won't be cover by this tutorial (e.g. `tidyverse` suite of packages).
+
+## 1. Quick introduction
+
+#### Problem 
+Trait-environment dataset are complex because they are made of multiple tables: the abundance information, the environmental conditions and the traits of the species. The question of trait-environment relationship (TER) analysis is how the trait and environment are related and how can they explain variations in species abundance?
+
+Two practical questions will be addressed here:  
+
+1. which trait and environmental variables should be included in TER?  
+2. how to make sure the three tables are linked together?
+
+We will use example dataset which is available in the zip archive `NEAtl_FishTraitEnv_rawdata.zip`, available for download [here](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/NEAtl_FishTraitEnv_rawdata.zip). To run the following examples, extract the archive in a folder, and set the working directory of R to this folder.
+
+
+#### Variable selection - Theoretical considerations
+
+The selection of variables is a key step for trait-environment analysis.
+
+**Variables must be generic** enough so that most of species are concerned. For instance, if only one species is swimming in schools over 50+ species, then keeping the binary variable *swimming in schools* is not relevant for this dataset - it would give more weights to the single species swimming in schools (unless your initial objective has a special interest about swimming behavior).
+
+**Remove obviously correlated variables**. For instance, age at maturation is highly correlated with lifespan. If both variables are included, double weight will be given to this characteristic. A good solution to remove this correlation is to compute ratios, e.g. age at maturation divided by lifespan which is the percentage of lifespan before maturation/first spawning. Yet, sometimes correlated variables could have different meaning, and it can be important to keep them both.  
+
+**Remove the geographic variables** or other variables that are not directly measured but a proxy. For instance, *habitat* or *temperature tolerance* are not a good trait to investigate  trait-environment relationship because it will be directly correlated with temperature. If you include temperature tolerance as a variable, you will force the results to follow the temperature gradient. Similarly, *latitude* would be a poor environmental variable because it is mostly a proxy of temperature gradient.  
+
+**Include enough variables** to be able to depict all the diversity of traits and environmental condition that we want to consider. For traits, one could think of the main dimensions, growth, reproduction, mobility, feeding. 
+Ideally, the number of variables per dimensions would be somehow balanced. Else, one must keep in mind that some dimensions are given more importance.
+
+An exploratory analysis is a necessary step to select the relevant variables.
+
+
+## 2. Traits dataset
+
+There are many sources of information for trait dataset depending on the type of organisms. 
+For fish, the largest resource is [Fishbase](https://www.fishbase.de/). For benthos, the [Biological Traits Information Catalogue (BIOTIC)](http://www.marlin.ac.uk/biotic/) collated multiple traits for benthic community ecology.  
+
+Other efforts to curate databases were published in data repository, such as:
+
+
+- traits for marine fish in the North Atlantic in Pangea [DOI 10.1594/PANGAEA.900866](https://doi.pangaea.de/10.1594/PANGAEA.900866)   
+- marine copepods traits in Earth System Science Data [DOI 10.5194/essd-11-301-2019](https://doi.org/10.5194/essd-11-301-2019)  
+
+
+### 2.1 Load traits dataset
+Let's load one example of trait database, extracted from Beukhof et al. 2019 [DOI 10.1594/PANGAEA.900866](https://doi.pangaea.de/10.1594/PANGAEA.900866)
+
+Make sure the file [`Fish_trait.csv`](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/Fish_trait.csv) is in your working directory, then load it in R.
+
+```{r, message=FALSE}
+trait <- read.csv("Fish_trait.csv")
+dim(trait)
+names(trait)
+```
+
+The table `trait` contain `r ncol(trait)` variables (in column) characterizing `r nrow(trait)` taxa (in rows). Among these variables:
+
+- family, genus, species: taxonomic information of the taxa
+- taxon: scientific name of the taxa
+- habitat: zone of the water column used by the taxon. Categorical variable with bathydemersal, bathypelagic, benthopelagic, demersal, non-pelagic, pelagic, reef-associated
+- feeding.mode: Main food source from stomach contents and biological descriptions of adults. Categorical variable with benthivorous, generalist, herbivorous, piscivorous, planktivorous
+- tl: trophic level based on the proportion of different prey in stomach
+- offspring.size: egg diameter, length of egg case or length of pup in mm
+- spawning.type: Type of spawning related to parental care. Categorical variable with bearer, external bearer, guarder
+hider, internal bearer, internal live bearer, nester, nonguarder, open water/substratum
+- age.maturity: age at first majority in years
+- fecundity: number of offspring produced by a female per year
+- length.infinity: Infinity length parameter estimated from the Von Bertalanffy equation, in cm
+- growth.coefficient: Growth coefficient K estimated from the Von Bertalanffy equation, expressed in year$^{-1}$
+- length.max: maximum body length in cm
+- age.max: lifespan in years
+
+### 2.2 Check distribution of continuous variable
+
+It is convenient to have continuous variables that don't have strong outliers and roughly following a 'normal distribution'. Therefore, it is recommended to check the distribution of each continuous variable and decide whether a transformation (log or square root) is needed.  
+
+Let's see two examples: trophic levels and offspring size.  
+
+We can visually check the distribution and the presence of outliers by using the functions `hist()` or `boxplot()`.
+
+```{r, message=FALSE}
+par(mfrow=c(1,2))
+hist(trait$tl, main="Histogram", xlab="Trophic level")
+boxplot(trait$tl, main="Boxplot", ylab="Trophic level")
+
+summary(trait$tl)
+```
+
+Histograms may be the most intuitive graphic, but the visual output dependents on the number of bars plotted (the number of classes) and the separation. 
+
+Boxplot represent the key distribution statistics (quartiles) in a graph. The middle bold line represent the median, separating the dataset in two with half the dataset having higher values than the median. The gray box represent the first and third quartiles (i.e. the interquartile range, IQR), i.e. half the dataset are included in this box, 25% have higher value than the third quartile (Q3), and the other quarter have lower values than the first quartile (Q1). The outliers are represented as dots if they are higher than $Q3 +1.5*IQR$ or lower than $Q1-1.5*IQR$.  
+
+In both case, we see that the distribution of values are well spread, and tropic level doesn't require data transformation.
+
+Let's now look at the distribution of offspring size (in mm).
+
+```{r, message=FALSE}
+par(mfrow=c(1,2))
+hist(trait$offspring.size, main="Histogram", xlab="Offspring size")
+boxplot(trait$offspring.size, main="Boxplot", ylab="Offspring size")
+
+summary(trait$offspring.size)
+```
+Most species have offspring size lower than 4 mm (Q3), while few species have very large offspring (max 900 mm). Hence it is strongly recommended to transform this variable.  
+
+There are multiple choices of transformation. Log transformation is very efficient but require that all values are positive and higher than 0. Square-root transformation (or other power transformation) also requires positive values, but can handle 0s. Square-root transformation is less strong than log-transformation (but cube- or eighth-root transformation can be very efficient too).  
+In our case, the log-transformation seems the most appropriate for this variable. 
+
+```{r, message=FALSE}
+par(mfrow=c(1,3))
+boxplot(trait$offspring.size, main="Raw data")
+boxplot(sqrt(trait$offspring.size),  main="Square root transform")
+boxplot(log(trait$offspring.size),  main="Log transform")
+```
+
+So we create a new variable with log-transformed offspring size
+```{r, message=FALSE}
+trait$offspring.size_log <- log(trait$offspring.size)
+```
+
+The same is true for fecundity (very skewed distribution) so we will log-transform it as well.
+```{r, message=FALSE}
+trait$fecundity_log <- log(trait$fecundity)
+```
+
+### 2.3 Correlation among continous variables
+
+A simple and graphical way to plot the correlation among continuous variable is to use the function `pairs()`. Additionally, we will define a function to show Spearman correlation coefficient *rho* which is based on rank (non parametric correlation).
+
+```{r, message=FALSE}
+panel.cor.m <- function(x, y, digits=2)
+{
+  usrold <- par()$usr; on.exit(par("usr"=usrold))
+  par("usr" = c(0, 1, 0, 1))
+  r <- cor(x, y,method = "spearman", use = "complete.obs")
+  r2 <- abs(cor(x, y,method = "spearman", use = "complete.obs"))
+  txt <- format(c(r, 0.123456789), digits=digits)[1]
+  cex <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex * r2)
+
+}
+```
+
+
+We must first select the continuous variables (it can't display categorical variables).
+```{r, message=FALSE}
+continuous <- c("tl","offspring.size_log","age.maturity","fecundity_log",
+                "length.infinity","growth.coefficient", "length.max","age.max")
+pairs(trait[,continuous], lower.panel=panel.smooth, 
+      upper.panel=panel.cor.m)
+
+```
+
+
+Length infinity is strongly positively correlated with maximum length (rho >0.7), and negatively with growth coefficient (rho <-0.75). So we will remove length infinity from further analysis. The other correlations are *acceptable* (here below 0.7).  
+
+*Note: there is no rule set in stone for what is an acceptable level of correlation*.
+
+### 2.4 Check distribution of categorical variables
+
+The use of categorical variable is allowed in most TER analysis, but often need small adjustment to the methodologies.
+
+Before selecting categorical variable, it is important to check the distribution of the categories. 
+
+```{r, message=FALSE}
+table(trait$spawning.type, useNA="ifany")
+barplot(table(trait$spawning.type, useNA="ifany"))
+```
+
+The dataset is largely dominated by non-guarder. The three categories are non equally distributed, but the number of category is reasonably low and each category is represented by at least 62 taxa. However the issue here are the NAs, which in most cases are not tolerated in TER analysis.  
+
+
+Let's look at another categorical variable: *habitat*. 
+
+```{r, out.width="50%", message=FALSE}
+nhabitat <- table(trait$habitat, useNA="ifany")
+nhabitat
+barplot(matrix(nhabitat, ncol=1), 
+        col=rainbow(length(nhabitat)),
+        legend.text=names(nhabitat),
+        args.legend = list("x"="center"))
+```
+
+Habitat is the typical example of a variable with too many categories. The fact that there are only 9 taxa as non-pelagic, and 22 as reef-associated will give a relatively large weight to these taxa. It might be good to define broader categories (when possible) or simply discard this categorical variable.
+
+#### 2.5 Simplify the trait dataset
+
+For simplicity we decided to keep only seven continuous variables. It is a good idea to keep the name of species as names of the rows in the trait table to help matching the rows at a later stage.
+
+```{r, message=FALSE}
+row.names(trait) <- trait$taxon
+
+#set which traits to keep
+keepTraits <- c("tl", "growth.coefficient" , "length.max",
+                "age.max", "age.maturity", "fecundity_log", "offspring.size_log")
+
+trait <- trait[,keepTraits]
+
+dim(trait)
+```
+
+## 3 Environemental variables
+
+If you don't have in-situ measurement, there are many other source of data if you have the coordinates of the sites. 
+`sdmpredictors` is a comprehensive list of spatially defined environmental drivers (but considered constant in time, impossible to study temporal dynamics). Other sources of temporally resolved dataset is Copernicus. Please visit https://rfrelat.github.io/SpatialR.html for more information on how to extract spatially and temporally resolved data in R.
+
+### 3.1 Load environmental dataset
+
+Make sure the file [`Fish_Environment.csv`](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/Fish_Environment.csv) is in your working directory, then load it in R.
+
+```{r, message=FALSE}
+env <- read.csv("Fish_Environment.csv")
+dim(env)
+names(env)
+```
+
+The table `env` contains `r ncol(env)` variables (in column) characterizing `r nrow(env)` sites (in rows). Among these variables: 
+
+- Longitude and Latitude: coordinates of the grid cell
+- Depth: depth in meter, directly measured during the survey.
+- SBT: monthly sea bottom temperature in °C from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- SBS: monthly sea bottom salinity from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- Chl: Chlorophyll a concentration (in $mg.m^{-3}$) as a proxy for primary production and food availability from the GlobColour database
+- SBT_sea: seasonality of sea bottom temperature, calculated as the difference between the warmest and the coldest month of the year.
+- Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
+- Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
+
+
+### 3.2 Check distribution and correlation among variables
+
+The same considerations apply for the environmental variables as for the trait variables. To get an overview of the distribution of the variables, we can create a boxplot of the scaled variables (the scaling remove the difference in units). 
+
+```{r, message=FALSE}
+boxplot(scale(env))
+```
+
+
+The distribution of SBS (salinity) is not wide, but we will keep it as it is.
+
+### 3.2 Maping the environement variables
+
+Another interesting feature is to look at the spatial distribution of environmental variables (to visually check if there is any error).
+
+For that, we will define a ggplot2 customized function (no need to understand it fully).
+
+```{r}
+library(ggplot2)
+mapggplot<-function(x, y, Var, colpal, main="", 
+                    xlab="Longitude", ylab="Latitude",
+                    legx=0.9, legy=0.2){
+  df <- data.frame(x,y,Var)
+  ggplot() +
+    geom_tile(data=df,aes(x=x,y=y,fill=Var)) + # 
+    scale_fill_gradientn(name = main, colours=colpal, na.value = 'white')+#,limits=c(0,25100)) +
+    borders(fill="gray44",colour="black") +
+    coord_quickmap(xlim=c(range(x)),ylim=c(range(y)))+
+    labs(x =xlab,y= ylab)+
+    theme(legend.position = c(legx,legy))+
+    theme(legend.title = element_text(size = 8),legend.text = element_text(size = 7))+
+    guides(shape = guide_legend(override.aes = list(size = 0.2)))+
+    theme(panel.background = element_rect(fill=alpha('light blue', 0.4), colour = 'black'))
+}
+```
+
+
+```{r}
+#Choice of sequential color scale
+colpal <- rev(heat.colors(6))
+# or from RColorBrewer package
+# colpal <- rev(RColorBrewer::brewer.pal(6,"OrRd")) 
+
+mapggplot(env$Longitude, env$Latitude, env$Depth, colpal)
+```
+
+# 4. Link the three matrices
+
+## 4.1 Load abundance matrix
+
+Make sure the file [`Fish_Abundance.csv`](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/Fish_Abundance.csv) is in your working directory, then load it in R.
+
+```{r, message=FALSE}
+abu <- read.csv("Fish_Abundance.csv",
+                check.names = FALSE)
+dim(abu)
+```
+
+
+The table `abu` contain the abundance of `r ncol(abu)` species (in column) in `r nrow(abu)` sites. 
+
+## 4.2 Discard rare species
+Rare species can have a strong role in the TER analysis and keeping them or not is tricky. Additionally, many rare species are also absent from trait database, so removing rare species might also help the collection of traits.
+
+Let's calculate the occurrence of species, i.e. the number of time each species were recorded.
+
+```{r, message=FALSE}
+nocc <- apply(abu>0,2,sum)
+hist(nocc)
+
+plot(sort(nocc), type="l", 
+     xlab="Species ordered per occurrence",
+     ylab="Number of sites")
+```
+
+We see that many species are recorded very seldom (less than 10 times).  
+We could also check the total abundance of each species.
+
+```{r, message=FALSE}
+totabu <- apply(abu,2,sum)
+plot(sort(totabu), type="l",
+     xlab="Species ordered per abundance",
+     ylab="Total abundance")
+```
+
+Same pattern here, most of the species have very low abundance.
+
+We could cross these two information to check the relationship between occurrence and total abundance in a log-scale plot (parameter `log="xy"`). Each dot represent one species.
+
+```{r, message=FALSE}
+plot(nocc,totabu, log="xy",
+     xlab="Occurrence", 
+     ylab="Total abundance")
+```
+
+There are no golden rule to decide which species to keep or which one to discard. It depends on the analysis (if the method is strongly influenced by rare species or not) and on the objectives of the study. Whatever the choice, it must be reported. 
+
+For our examples, we decided to remove all species that occurred in less than 10% of the sites (`r round(nrow(abu)*0.1)` occurrences). 
+
+```{r, message=FALSE}
+threshold <- nrow(abu)*0.1
+#number of species kept
+sum(nocc>threshold)
+#percentage of abundance conserved
+sum(abu[,nocc>threshold])/sum(abu)*100
+
+#Select only species with occurrence in at least 10% of grid cells
+abu <- abu[,nocc>threshold]
+```
+
+In total, `r sum(nocc>threshold)` species are selected, which account for 97 % of all abundances. 
+
+
+## 4.3 Merge the three tables
+
+We must make sure that the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`. 
+
+To help us doing that, we use the function `match`, which work like match(x,y) to find the corresponding value of X in the vector Y. The result will be a vector of the same length of X, with the corresponding element of Y.  
+
+
+```{r}
+# match the taxa names
+mtaxa <- match(colnames(abu), row.names(trait))
+
+#check if there all species are matched: must be TRUE
+all(!is.na(mtaxa))
+
+trait <- trait[mtaxa,]
+
+#check if column of abu match the rows of trait: must be TRUE
+all(colnames(abu)==row.names(trait))
+```
+
+The environment dataset and the abundance dataset were already provided with matching rows. We can check that again here.
+
+```{r}
+#check if rows of abu and env match: must be TRUE
+all(row.names(abu)==row.names(env))
+```
+
+It is handy to separate the coordinates from the environmental variables.
+
+```{r}
+# save coordinates in a separate object
+coo <- cbind(env$Longitude, env$Latitude)
+
+# and remove in 'env'
+env <- env[,-which(names(env)%in%c("Longitude", "Latitude"))]
+dim(env)
+```
+
+
+One last check, we need to make sure there are no NAs in our tables (which might limit the choice of method). Because our dataset is complete, we did not spend much time about this. But in most cases, it could be one of the most restricting factor when selecting species and sites. Let's see how many NAs there is per variable.
+
+```{r}
+apply(is.na(env),2,sum)
+
+apply(is.na(trait),2,sum)
+```
+
+It is recommended to recheck the correlations and go back to steps 2 and 3 on this reduced set of species and sites. 
+
+## 4.4 Save the output
+Because there are many tables and all of them are linked, it is handy to save them all in one single R readable file with the function ´save()`.
+
+*Note: one can also save functions in a Rdata object, so we will also save the mapggplot() function for plotting future maps.*
+```{r}
+save(abu, trait, env, coo, 
+     mapggplot,
+     file="FishTraitEnv_example.Rdata")
+```
+
+
+# Conclusion
+
+We presented some of the considerations that need to be tackled when preparing dataset for investigating trait-environment relationship. Once the dataset is ready, there are multiple methods that can be used, each of them differ slightly in their aim and hypothesis. Among them:
+
+1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/CWM.html) and link them to environmental variables.
+2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html)  
+3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/HMSC.html)
+
+
+
