@@ -5,7 +5,7 @@ Ressources developed for FutureMares Task 1.2. Trait-environment workshop. 7th J
 lead by Martin Lindegren  
 with the help from Benjamin Weigel, Esther Beukhof and Romain Frelat
 
-All tutorials use the same example from fish communities in the Northeast Atlantic. The dataset can be downloaded [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata).  Every tutorial can be followed independently, in any order. All resources use [R software](https://cran.r-project.org/) and require basic knowledge of the R language.
+All tutorials use the same example from fish communities in the Northeast Atlantic. The dataset can be downloaded [here](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/NEAtl_FishTraitEnv.Rdata).  Every tutorial can be followed independently, in any order. All resources use [R software](https://cran.r-project.org/) and require basic knowledge of the R language.
 
 A. [Considerations for **data preparation** for trait-environement relationship](https://rfrelat.github.io/CleanDataTER.html)
 
