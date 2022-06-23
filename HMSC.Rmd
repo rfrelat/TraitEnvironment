@@ -98,7 +98,7 @@ We build a phylo object from the taxonomic relationships provided in `taxo`
 First make sure the taxonomic units are factors
 ```{r, fig.height = 10, fig.width = 7, fig.align = "center"}
 str(taxo) #listed as chr
-taxo <- as.data.frame(unclass(taxo)) # make factors
+taxo <- as.data.frame(lapply(taxo, as.factor)) # make factors
 str(taxo) # now they are!
 
 # build the tree  
@@ -402,7 +402,7 @@ Next we fit the model as above.
 
 ```{r eval=FALSE}
  m = sampleMcmc(m, thin = thin, samples = samples, transient = transient, nChains = nChains) 
-````
+```
 
 
 Load the fitted model

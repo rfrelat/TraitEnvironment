@@ -143,13 +143,14 @@ A simple and graphical way to plot the correlation among continuous variable is 
 ```{r, message=FALSE}
 panel.cor.m <- function(x, y, digits=2)
 {
-  usr <- par("usr"); on.exit(par(usr))
-  par(usr = c(0, 1, 0, 1))
+  usrold <- par()$usr; on.exit(par("usr"=usrold))
+  par("usr" = c(0, 1, 0, 1))
   r <- cor(x, y,method = "spearman", use = "complete.obs")
   r2 <- abs(cor(x, y,method = "spearman", use = "complete.obs"))
   txt <- format(c(r, 0.123456789), digits=digits)[1]
   cex <- 0.8/strwidth(txt)
   text(0.5, 0.5, txt, cex = cex * r2)
+
 }
 ```
 
@@ -416,7 +417,7 @@ save(abu, trait, env, coo,
 We presented some of the considerations that need to be tackled when preparing dataset for investigating trait-environment relationship. Once the dataset is ready, there are multiple methods that can be used, each of them differ slightly in their aim and hypothesis. Among them:
 
 1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/CWM.html) and link them to environmental variables.
-2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html) or double constrained correspondence analysis [(dc-ca)](https://rfrelat.github.io/DCCA.html)
+2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html)  
 3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/HMSC.html)
 
 

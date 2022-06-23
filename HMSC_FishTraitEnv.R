@@ -31,7 +31,7 @@ dim(env)
 names(env)
 
 str(taxo) #listed as chr
-taxo <- as.data.frame(unclass(taxo)) # make factors
+taxo <- as.data.frame(lapply(taxo, as.factor)) # make factors
 str(taxo) # now they are!
 
 # build the tree  
