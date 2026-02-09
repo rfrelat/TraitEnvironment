@@ -12,7 +12,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = '../Data')
 ```
-This document provides an example data and R code for estimating **Community Weighted Mean** (CWM) traits and diversity indices, as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest). It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html).
+
+This document provides an example data and R code for estimating **Community Weighted Mean** (CWM) traits and diversity indices, as well as plotting patterns and identifying key drivers and state-pressure relationships (using GAMs and random forest). It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment/).
 
 # 1. Preliminaries
 
@@ -84,7 +85,7 @@ The `env` table contains `r ncol(env)`  environmental variables (in column) char
 - Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
 - Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
 
-Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/CleanDataTER.html).  
+Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/TraitEnvironment/CleanDataTER.html).  
 
 ```{r}
 all(row.names(abu)==row.names(env))
@@ -257,7 +258,7 @@ load("../Saved Models/CWMresults.Rdata")
 ```{r}
 subset(results, delta <5)  # Depth, SBT and fishing are key variables
 # Calculate and view relative variable importance (RVI) scores
-importance(results) 
+sw(results) 
 ```
 
 ```{r eval=FALSE}

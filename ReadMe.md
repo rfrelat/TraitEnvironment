@@ -7,13 +7,13 @@ Frelat, R., Beukhof, E., Weigel, B. & Lindegren, M. (2022). *Tutorial for analys
 
 All tutorials use the same example from fish communities in the Northeast Atlantic. The dataset can be downloaded [here](https://raw.githubusercontent.com/rfrelat/TraitEnvironment/master/Data/NEAtl_FishTraitEnv.Rdata).  Every tutorial can be followed independently, in any order. All resources use [R software](https://cran.r-project.org/) and require basic knowledge of the R language.
 
-A. [Considerations for **data preparation** for trait-environement relationship](https://rfrelat.github.io/CleanDataTER.html)
+A. [Considerations for **data preparation** for trait-environement relationship](https://rfrelat.github.io/TraitEnvironment/CleanDataTER.html)
 
-B. [Community weighted mean traits **(CWM)** and diversity indicators](https://rfrelat.github.io/CWM.html)
+B. [Community weighted mean traits **(CWM)** and diversity indicators](https://rfrelat.github.io/TraitEnvironment/CWM.html)
 
-C. [**RLQ** analysis](https://rfrelat.github.io/RLQ.html)
+C. [**RLQ** analysis](https://rfrelat.github.io/TraitEnvironment/RLQ.html)
 
-D. [Hierarchical Modelling of Species Communities (**HMSC**)](https://rfrelat.github.io/HMSC.html)
+D. [Hierarchical Modelling of Species Communities (**HMSC**)](https://rfrelat.github.io/TraitEnvironment/HMSC.html)
 
 
 

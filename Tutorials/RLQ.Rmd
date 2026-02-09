@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = '../Data')
 ```
 
-This document provides an **introduction to RLQ analysis**, as part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/).
+This document provides an **introduction to RLQ analysis**, as part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment/). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/).
 
 Please consult the [tutorial by Dray S. et al. 2016](https://ndownloader.figshare.com/files/5628774) for more details about the RLQ analysis [DOI 10.6084/m9.figshare.c.3306393.v1](https://doi.org/10.6084/m9.figshare.c.3306393.v1)
 
@@ -58,11 +58,11 @@ The Rdata file contains four objects:
 
 Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  
 ```{r}
-all(row.names(abu)==row.names(env))
-all(colnames(abu)==row.names(trait))
+all(row.names(abu) == row.names(env))
+all(colnames(abu) == row.names(trait))
 ```
 
-If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/CleanDataTER.html).  
+If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/TraitEnvironment/CleanDataTER.html).  
 
 Using the fish community of the Northeast Atlantic as an example, we will **explore the trait-environment relationship using the RLQ analysis**.
 
@@ -120,7 +120,7 @@ Compare to PCA which maximize the *variance* explained, COA maximize the *inerti
 For more explanation about COA, I recommend the short explanation in [GustaMe](https://sites.google.com/site/mb3gustame/indirect-gradient-analysis/ca) or the book Numerical Ecology by Legendre brothers.
 
 ```{r}
-coa.abu <- dudi.coa(abu, scannf = FALSE, nf=2)
+coa.abu <- dudi.coa(abu, scannf = FALSE, nf = 2)
 ```
 
 The objective is not to look in details at each step, so we don't interpret the results of COA here.
@@ -139,8 +139,7 @@ In all cases, it is necessary to specify the row weights (corresponding to the r
 In our case all traits are continuous, so we use a PCA with the row weights corresponding to the column weight of the previous COA (`row.w = coa.abu$cw`).
 
 ```{r}
-pca.trait <- dudi.pca(trait, scannf = FALSE, 
-                      row.w = coa.abu$cw)
+pca.trait <- dudi.pca(trait, scannf = FALSE, row.w = coa.abu$cw)
 ```
 
 ## 2.3 PCA on environment matrix R (sites x environment)
@@ -148,8 +147,7 @@ pca.trait <- dudi.pca(trait, scannf = FALSE,
 Similarly here, with our seven continuous environmental variable, we chose to use a PCA with the row weights corresponding to the row weight of the previous COA (`row.w = coa.abu$lw`).
 
 ```{r}
-pca.env <- dudi.pca(env, scannf = FALSE, 
-                     row.w = coa.abu$lw)
+pca.env <- dudi.pca(env, scannf = FALSE, row.w = coa.abu$lw)
 ```
 
 
@@ -162,8 +160,7 @@ RLQ is based on co-inertia analysis, which is a unconstrained symmetrical analys
 
 
 ```{r}
-rlqF <- rlq(pca.env, coa.abu, pca.trait, 
-            scannf = FALSE)
+rlqF <- rlq(pca.env, coa.abu, pca.trait, scannf = FALSE)
 
 summary(rlqF)
 ```
@@ -178,10 +175,9 @@ The first axis of co-inertia (RLQ1) explain `r round(rlqF$eig[1]/sum(rlqF$eig)*1
 
 ```{r}
 #Plot traits score
-t1 <- order(rlqF$c1[,1])
-dotchart(rlqF$c1[t1,1], pch=16, 
-         labels = names(trait)[t1])
-abline(v=0, lty=2)
+t1 <- order(rlqF$c1[, 1])
+dotchart(rlqF$c1[t1, 1], pch = 16, labels = names(trait)[t1])
+abline(v = 0, lty = 2)
 ```
 
 RLQ1 show the fast-slow continuum in species traits. With positive score (right side) for traits associated to slow life history (high age at maturity, large offspring, large size and high life expectancy) and negative score for traits associated to fast life history (fast growth).
@@ -190,10 +186,10 @@ RLQ1 show the fast-slow continuum in species traits. With positive score (right 
 Due to the high number of species (```nrow(trait)```), it is hard to visualize the score of each individual species. But we can see the species with highest and lowest score on RLQ1.
 ```{r}
 # top 10 species with positive score
-rlqF$mQ[order(rlqF$mQ[,1], decreasing = TRUE)[1:10],]
+rlqF$mQ[order(rlqF$mQ[, 1], decreasing = TRUE)[1:10], ]
 
 # top 10 species with negative score
-rlqF$mQ[order(rlqF$mQ[,1])[1:10],]
+rlqF$mQ[order(rlqF$mQ[, 1])[1:10], ]
 ```
 
 Among the slowest species (here with positive score) are many sharks, skates and rays (e.g. the Greenland shark *Somniosus microcephalus*, the common skate *Dipturus batis*) but also some large bony fish such as the Atlantic halibut *Hippoglossus hippoglossus*.  
@@ -203,10 +199,9 @@ Among the fastest species (here with negative score) are small fish such as thre
 ## 3.4 Environmental scores
 ```{r}
 #Plot environment score
-e1 <- order(rlqF$l1[,1])
-dotchart(rlqF$l1[e1,1], pch=16,
-         labels = names(env)[e1])
-abline(v=0, lty=2)
+e1 <- order(rlqF$l1[, 1])
+dotchart(rlqF$l1[e1, 1], pch = 16, labels = names(env)[e1])
+abline(v = 0, lty = 2)
 ```
 
 RLQ1 show a gradient between shallow-warm  and deep-cold waters. With positive scores are environment with high depth, but low and constant temperature as well as low primary production. Sites with negative scores have high average temperature and high seasonal fluctuation of temperature, as well as high primary production and low depth. 
@@ -217,10 +212,9 @@ RLQ1 show a gradient between shallow-warm  and deep-cold waters. With positive s
 # Choice of diverging color scale
 colpal <- terrain.colors(7)[-7]
 # or from RColorBrewer package
-# colpal <- rev(RColorBrewer::brewer.pal(6,"RdYlBu")) 
+# colpal <- rev(RColorBrewer::brewer.pal(6,"RdYlBu"))
 
-mapggplot(coo[,1], coo[,2], rlqF$lR[,1], 
-          colpal, main="RLQ1")
+mapggplot(coo[, 1], coo[, 2], rlqF$lR[, 1], colpal, main = "RLQ1")
 ```
 
 

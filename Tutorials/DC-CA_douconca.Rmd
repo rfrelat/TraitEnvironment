@@ -1,0 +1,232 @@
+---
+title: "Introduction to Double Constrained Correspondance Analysis"
+author: "Frelat, R."
+date: "9th Feburary 2026"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '../Data')
+```
+
+**This document is a work in progress ! Use only with extreme care. **
+
+This document provides an introduction to double constrained correspondence analysis (DC-CA). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/). 
+
+This tutorial is greatly inspired from the [tutorial by ter Braak, C. J., and van Rossum, B. J. (2025)](https://doi.org/10.1016/j.ecoinf.2025.103143). Please read the original publication for more details about the double constrained correspondence analysis analysis and the [douconca R-package documentation](https://biometris.github.io/douconca/)
+
+The example dataset is available for download [here ( NEAtl_FishTraitEnv.Rdata)](https://github.com/rfrelat/TraitEnvironment/raw/main/NEAtl_FishTraitEnv.Rdata).
+
+
+
+# 0. Preliminaries
+
+### Load packages and dataset
+
+The DC-CA analyses require the R packages [douconca](https://cran.r-project.org/web/packages/douconca/index.html).
+
+```{r, message=FALSE}
+library(douconca)
+```
+
+To plot maps with country border, you also need the packages `ggplot2 (v ≥ 3.3)`.
+
+```{r, message=FALSE}
+library(ggplot2)
+```
+
+If you get an error message, check that the R packages are installed correctly. If not, use the command: `install.packages(c("douconca", "ggplot2"))`.
+
+The example dataset is available as the Rdata file `NorthSea_FishTraitEnv.Rdata`, available for download [here](https://github.com/rfrelat/TraitEnvironment/raw/main/NorthSea_FishTraitEnv.Rdata).  
+
+### Load the example dataset
+
+Make sure the file `NorthSea_FishTraitEnv.Rdata` is in your working directory, then load it in R.
+
+```{r}
+load("NEAtl_FishTraitEnv.Rdata")
+```
+
+The Rdata file contains four objects: 
+
+- `abu` containing the abundance of taxa in grid cells
+- `env` containing the environmental condition per grid cell
+- `trait` containing the trait information per taxa 
+- `coo`: the coordinates of each grid cell
+
+Importantly, the rows in `abu` correspond to the same grid cell than the rows in `env`, and the column in `abu` correspond to the same taxa than the rows in `trait`.  
+```{r}
+all(row.names(abu) == row.names(env))
+all(colnames(abu) == row.names(trait))
+```
+
+If you want to learn how to create such dataset, see the short [tutorial on setting trait-environement dataset](https://rfrelat.github.io/TraitEnvironment/CleanDataTER.html).  
+
+Using the fish community of the Northeast Atlantic as an example, we will **explore the trait-environment relationship using the DC-CA analysis**.
+
+### Quick summary of the variables
+
+```{r}
+dim(trait)
+names(trait)
+```
+
+The `trait` table contains `r ncol(trait)`  traits (i.e variable, in column) characterizing `r nrow(trait)` taxa (in rows). The `r ncol(trait)` traits broadly represent the life history and ecology of fish in terms of their feeding, growth, survival and reproduction. These are:  
+
+- Trophic level
+- K: the growth rate, calculated as Von Bertalanffy growth coefficient in year$^{-1}$
+- Lmax: maximum body length in cm
+- Lifespan
+- Offspring.size_log: egg diameter, length of egg case or length of pup in mm
+- Fecundity_log: number of offspring produced by a female per year
+- Age.maturity: in years
+
+Trait values for fecundity and offspring size were log-transformed to reduce the influence of outliers. 
+
+
+```{r}
+dim(env)
+names(env)
+```
+
+The `env` table contains `r ncol(env)`  environmental variables (in column) characterizing `r nrow(env)` grid cells (in rows). The environmental variables measure hydrography, habitat, food availability and anthropogenic pressures, which are known to affect the distribution of fish species. These are:  
+
+- Depth: depth in meter, directly measured during the survey.
+- SBT: monthly sea bottom temperature in °C from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- SBS: monthly sea bottom salinity from the Global Ocean Physics Reanalysis (GLORYSs2v4) 
+- Chl: Chlorophyll a concentration (in $mg.m^{-3}$) as a proxy for primary production and food availability from the GlobColour database
+- SBT_sea: seasonality of sea bottom temperature, calculated as the difference between the warmest and the coldest month of the year.
+- Chl_sea: seasonality of chlorophyll a concentration, calculated as the difference between the highest and the lowest primary production in the year
+- Fishing: the cumulative demersal fishing pressure in 2013, estimated globally by Halpern et al. 2015, [DOI 10.1038/ncomms8615](https://doi.org/10.1038/ncomms8615). 
+
+
+# 1. Run DC-CA 
+
+In this first step, we use DC-CA on all traits and raw abundance values.
+
+```{r}
+mod_CCA <- dc_CA(
+  formulaEnv = ~.,
+  formulaTraits = ~.,
+  response = abu,
+  env,
+  trait
+)
+anova(mod_CCA, by = "axis")
+```
+
+The axis are not significant, so we try to transform the abundance with Hill-N2.
+
+```{r}
+# N2 transformation
+abuN2 <- ipf2N2(abu, N2N_N2_species = TRUE)
+mod_CCA_N2 <- dc_CA(
+  formulaEnv = ~.,
+  formulaTraits = ~.,
+  response = abuN2,
+  env,
+  trait
+)
+
+anova(mod_CCA_N2, by = "axis")
+
+plot(mod_CCA_N2)
+
+```
+
+As with RLQ analysis, the DCCA provide scores for species, sites, traits and environmental variables. Nothing is significant.
+
+The eigen values are stored as `eigenvalues` which are also the fourth corner correlation.
+
+```{r}
+# dc-CA eigen values
+mod_CCA_N2$eigenvalues
+
+# Explained variance (cum)
+round(cumsum(mod_CCA_N2$eigenvalues) * 100, 1)
+
+# Explained fitted variation (cum.)
+round(cumsum(mod_CCA_N2$eigenvalues) / sum(mod_CCA_N2$eigenvalues) * 100, 1)
+```
+
+
+The first axis explains `r round(mod_CCA_N2$eigenvalues[1] / sum(mod_CCA_N2$eigenvalues) * 100)`% of covariance. In the next step, we will interpret the scores of the two first axis (but similar visualization could be carried out for subsequent axis).
+
+## 1.2 Trait scores
+
+```{r}
+#Plot traits score
+t1 <- mod_CCA_N2$c_traits_normed[, "Regr1"]
+dotchart(t1[order(t1)], pch = 16, labels = names(t1)[order(t1)], main = "PC1")
+abline(v = 0, lty = 2)
+```
+
+
+## 1.3 Species scores
+Due to the high number of species (```nrow(trait)```), it is hard to visualize the score of each individual species. But we can see the species with highest and lowest score on PC1.
+```{r}
+# top 10 species with positive score
+t1 <- mod_CCA_N2$species_axes$species_scores$lc_traits_scores[, 1]
+t1[order(t1, decreasing = TRUE)[1:10]]
+
+# top 10 species with negative score
+t1[order(t1)[1:10]]
+```
+
+## 1.4 Environmental scores
+```{r}
+#Plot environment score
+e1 <- mod_CCA_N2$c_env_normed[, "Regr1"]
+dotchart(e1[order(e1)], pch = 16, labels = names(e1)[order(e1)], main = "PC1")
+abline(v = 0, lty = 2)
+```
+
+## 1.5 Sites scores
+
+```{r}
+# Choice of diverging color scale
+colpal <- terrain.colors(7)[-7]
+
+mapggplot(
+  coo[, 1],
+  coo[, 2],
+  mod_CCA_N2$site_axes$site_scores$lc_env_scores[, 1],
+  colpal,
+  main = "PC1"
+)
+```
+
+## 1.6 Second axis
+
+In fact PC2 also explain a large proportion of the variance too (`r round(mod_CCA_N2$eigenvalues[2] / sum(mod_CCA_N2$eigenvalues) * 100)`%). So let's have a quick look at its interpretation.
+
+```{r}
+par(mfrow = c(1, 2))
+t2 <- mod_CCA_N2$c_traits_normed[, "Regr2"]
+dotchart(t2[order(t2)], pch = 16, labels = names(t2)[order(t2)], main = "PC1")
+abline(v = 0, lty = 2)
+
+e2 <- mod_CCA_N2$c_env_normed[, "Regr2"]
+dotchart(e2[order(e2)], pch = 16, labels = names(e2)[order(e2)], main = "PC1")
+abline(v = 0, lty = 2)
+
+mapggplot(
+  coo[, 1],
+  coo[, 2],
+  mod_CCA_N2$site_axes$site_scores$lc_env_scores[, 2],
+  colpal,
+  main = "PC2"
+)
+```
+
+
+
+# References
+
+ter Braak, C. J., & van Rossum, B. J. (2025). Linking multivariate trait variation to the environment: the advantages of double constrained correspondence analysis with the R package douconca. Ecological Informatics, 88, 103143.  
+
+ter Braak, C.J.F., van Rossum, B.-J., 2024. R Package Douconca: Double Constrained Correspondence Analysis for Multi-trait Multi-environment Analysis v1.2.2.

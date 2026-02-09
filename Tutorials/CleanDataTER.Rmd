@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = '../Data')
 ```
 
-This document provides a quick introduction to data wrangling. It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment.html). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/). 
+This document provides a quick introduction to data wrangling. It is part of a series of [tutorials for studying trait-environment relationship](https://rfrelat.github.io/TraitEnvironment/). The tutorial targets students and scientists in ecology with previous knowledge of the [R software](https://cran.r-project.org/). 
 
 Be aware that this tutorial use `base` R functions (i.e. without any package). There are many other ways to process data in R, but it won't be cover by this tutorial (e.g. `tidyverse` suite of packages).
 
@@ -218,7 +218,7 @@ dim(trait)
 ## 3 Environemental variables
 
 If you don't have in-situ measurement, there are many other source of data if you have the coordinates of the sites. 
-`sdmpredictors` is a comprehensive list of spatially defined environmental drivers (but considered constant in time, impossible to study temporal dynamics). Other sources of temporally resolved dataset is Copernicus. Please visit https://rfrelat.github.io/SpatialR.html for more information on how to extract spatially and temporally resolved data in R.
+`sdmpredictors` is a comprehensive list of spatially defined environmental drivers (but considered constant in time, impossible to study temporal dynamics). Other sources of temporally resolved dataset is Copernicus. Please visit <https://frbcesab.github.io/spatial-r/> for more information on how to extract spatially and temporally resolved data in R.
 
 ### 3.1 Load environmental dataset
 
@@ -419,9 +419,9 @@ save(abu, trait, env, coo,
 
 We presented some of the considerations that need to be tackled when preparing dataset for investigating trait-environment relationship. Once the dataset is ready, there are multiple methods that can be used, each of them differ slightly in their aim and hypothesis. Among them:
 
-1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/CWM.html) and link them to environmental variables.
-2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/RLQ.html)  
-3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/HMSC.html)
+1. Computing aggregated indicators of community weighted mean traits [(CWM)](https://rfrelat.github.io/TraitEnvironment/CWM.html) and link them to environmental variables.
+2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/TraitEnvironment/RLQ.html) or [Dc-CA](https://rfrelat.github.io/TraitEnvironment/DC-CA_douconca.html)
+3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/TraitEnvironment/HMSC.html)
 
 
 
