@@ -176,7 +176,7 @@ The first axis of co-inertia (RLQ1) explain `r round(rlqF$eig[1]/sum(rlqF$eig)*1
 ```{r}
 #Plot traits score
 t1 <- order(rlqF$c1[, 1])
-dotchart(rlqF$c1[t1, 1], pch = 16, labels = names(trait)[t1])
+dotchart(rlqF$c1[t1, 1], pch = 16, labels = row.names(rlqF$c1)[t1])
 abline(v = 0, lty = 2)
 ```
 
@@ -200,7 +200,7 @@ Among the fastest species (here with negative score) are small fish such as thre
 ```{r}
 #Plot environment score
 e1 <- order(rlqF$l1[, 1])
-dotchart(rlqF$l1[e1, 1], pch = 16, labels = names(env)[e1])
+dotchart(rlqF$l1[e1, 1], pch = 16, labels = row.names(rlqF$l1)[e1])
 abline(v = 0, lty = 2)
 ```
 
@@ -220,6 +220,25 @@ mapggplot(coo[, 1], coo[, 2], rlqF$lR[, 1], colpal, main = "RLQ1")
 
 This map summarize the association of trait and environment identified by RLQ analysis. Cells with green color (representing negative scores) are shallower and have higher and more fluctuating water temperature. They host species that are faster, especially with a fast growth coefficient, low age at maturity, small offspring and overall smaller and shorter lived species.
 On the contrary, cells with pinkish color are deeper and have constantly cold water temperature, which host a fish community with, in average, slower growth, slower maturity, larger offspring and larger and longer lived species.
+
+
+## 1.6 Second axis
+
+Let's have a quick look at PC2 interpretation.
+
+```{r}
+
+par(mfrow = c(1, 2))
+t2 <- order(rlqF$c1[, 2])
+dotchart(rlqF$c1[t2, 2], pch = 16, labels = row.names(rlqF$c1)[t2])
+abline(v = 0, lty = 2)
+
+e2 <- order(rlqF$l1[, 2])
+dotchart(rlqF$l1[e2, 2], pch = 16, labels = row.names(rlqF$l1)[e2])
+abline(v = 0, lty = 2)
+
+mapggplot(coo[, 1], coo[, 2], rlqF$lR[, 2], colpal, main = "RLQ2")
+```
 
 
 # References

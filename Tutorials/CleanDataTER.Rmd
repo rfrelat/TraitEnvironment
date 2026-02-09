@@ -423,5 +423,3 @@ We presented some of the considerations that need to be tackled when preparing d
 2. Multivariate methods, such as [RLQ analysis](https://rfrelat.github.io/TraitEnvironment/RLQ.html) or [Dc-CA](https://rfrelat.github.io/TraitEnvironment/DC-CA_douconca.html)
 3. Hierarchical Modeling of Species Communities [(HMSC)](https://rfrelat.github.io/TraitEnvironment/HMSC.html)
 
-
-

@@ -106,24 +106,26 @@ The `env` table contains `r ncol(env)`  environmental variables (in column) char
 
 # 1. Run DC-CA 
 
-In this first step, we use DC-CA on all traits and raw abundance values.
+In this first step, we use DC-CA on all traits and square root transformed abundance values.
 
 ```{r}
 mod_CCA <- dc_CA(
   formulaEnv = ~.,
   formulaTraits = ~.,
-  response = abu,
+  response = sqrt(abu),
   env,
   trait
 )
 anova(mod_CCA, by = "axis")
 ```
 
-The axis are not significant, so we try to transform the abundance with Hill-N2.
+
+
+The axis are not significant, so we try to transform the abundance with square root transformation and Hill-N2.
 
 ```{r}
 # N2 transformation
-abuN2 <- ipf2N2(abu, N2N_N2_species = TRUE)
+abuN2 <- ipf2N2(sqrt(abu), N2N_N2_species = TRUE)
 mod_CCA_N2 <- dc_CA(
   formulaEnv = ~.,
   formulaTraits = ~.,
@@ -144,7 +146,10 @@ The eigen values are stored as `eigenvalues` which are also the fourth corner co
 
 ```{r}
 # dc-CA eigen values
-mod_CCA_N2$eigenvalues
+rbind(
+  "raw" = mod_CCA$eigenvalues,
+  "N2" = mod_CCA_N2$eigenvalues
+)
 
 # Explained variance (cum)
 round(cumsum(mod_CCA_N2$eigenvalues) * 100, 1)
@@ -161,8 +166,18 @@ The first axis explains `r round(mod_CCA_N2$eigenvalues[1] / sum(mod_CCA_N2$eige
 ```{r}
 #Plot traits score
 t1 <- mod_CCA_N2$c_traits_normed[, "Regr1"]
-dotchart(t1[order(t1)], pch = 16, labels = names(t1)[order(t1)], main = "PC1")
+t0 <- mod_CCA$c_traits_normed[, "Regr1"]
+dotchart(
+  t1[order(t1)],
+  pch = 16,
+  labels = names(t1)[order(t1)],
+  main = "PC1",
+  xlim = range(t0, t1)
+)
+
+points(t0[order(t1)], 1:length(t0), pch = 16, col = "red")
 abline(v = 0, lty = 2)
+legend("bottomright", c("N2", "raw"), col = c("black", "red"), pch = 16)
 ```
 
 
@@ -181,8 +196,18 @@ t1[order(t1)[1:10]]
 ```{r}
 #Plot environment score
 e1 <- mod_CCA_N2$c_env_normed[, "Regr1"]
-dotchart(e1[order(e1)], pch = 16, labels = names(e1)[order(e1)], main = "PC1")
+e0 <- mod_CCA$c_env_normed[, "Regr1"]
+dotchart(
+  e1[order(e1)],
+  pch = 16,
+  labels = names(e1)[order(e1)],
+  main = "PC1",
+  xlim = range(e0, e1)
+)
+
+points(e0[order(e1)], 1:length(e0), pch = 16, col = "red")
 abline(v = 0, lty = 2)
+legend("bottomright", c("N2", "raw"), col = c("black", "red"), pch = 16)
 ```
 
 ## 1.5 Sites scores
@@ -207,11 +232,11 @@ In fact PC2 also explain a large proportion of the variance too (`r round(mod_CC
 ```{r}
 par(mfrow = c(1, 2))
 t2 <- mod_CCA_N2$c_traits_normed[, "Regr2"]
-dotchart(t2[order(t2)], pch = 16, labels = names(t2)[order(t2)], main = "PC1")
+dotchart(t2[order(t2)], pch = 16, labels = names(t2)[order(t2)], main = "PC2")
 abline(v = 0, lty = 2)
 
 e2 <- mod_CCA_N2$c_env_normed[, "Regr2"]
-dotchart(e2[order(e2)], pch = 16, labels = names(e2)[order(e2)], main = "PC1")
+dotchart(e2[order(e2)], pch = 16, labels = names(e2)[order(e2)], main = "PC2")
 abline(v = 0, lty = 2)
 
 mapggplot(
